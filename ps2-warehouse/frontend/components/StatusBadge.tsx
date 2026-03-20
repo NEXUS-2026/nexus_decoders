@@ -5,17 +5,23 @@ interface Props {
 }
 
 export default function StatusBadge({ status }: Props) {
-  const isActive = status === "active";
+  const isActive = status === "active" || status === "processing";
+  const isProcessing = status === "processing";
+
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+      className={`rounded-full px-3 py-1 text-xs font-display font-semibold border tracking-widest inline-flex items-center gap-1.5 ${
         isActive
-          ? "bg-green-500/15 text-green-400 border border-green-500/20"
-          : "bg-gray-500/15 text-gray-400 border border-gray-500/20"
+          ? "bg-accent/10 text-accent border-accent/20 animate-pulse"
+          : "bg-success/10 text-success border-success/20"
       }`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-green-400 animate-pulse" : "bg-gray-400"}`} />
-      {isActive ? "Active" : "Completed"}
+      <span
+        className={`w-1.5 h-1.5 rounded-full ${
+          isActive ? "bg-accent" : "bg-success"
+        }`}
+      />
+      {isProcessing ? "PROCESSING" : isActive ? "● LIVE" : "✓ DONE"}
     </span>
   );
 }

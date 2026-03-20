@@ -5,17 +5,24 @@ from contextlib import asynccontextmanager
 from database import create_db
 from routers import sessions, detection, files
 from services.cleanup import start_cleanup_scheduler
+from services.detection_runner import set_main_loop
 from pathlib import Path
+import asyncio
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db()
     start_cleanup_scheduler()
+    # Store reference to the main event loop for the detection runner
+    set_main_loop(asyncio.get_running_loop())
+    # Ensure uploads directory exists
+    uploads_dir = Path(__file__).parent.parent / "storage" / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
     yield
 
 
-app = FastAPI(title="PS2 Backend", lifespan=lifespan)
+app = FastAPI(title="PackTraq Backend", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

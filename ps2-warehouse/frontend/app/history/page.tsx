@@ -1,7 +1,17 @@
 "use client";
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Package,
+  Plus,
+  User,
+  FileDown,
+  Play,
+  Loader2,
+} from "lucide-react";
 import { API } from "@/lib/api";
-import SessionCard from "@/components/SessionCard";
+import StatusBadge from "@/components/StatusBadge";
+import Link from "next/link";
 
 interface SessionData {
   id: number;
@@ -11,6 +21,7 @@ interface SessionData {
   stopped_at: string | null;
   final_box_count: number;
   status: string;
+  input_mode?: string;
 }
 
 export default function HistoryPage() {
@@ -24,35 +35,180 @@ export default function HistoryPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Session History</h1>
-        <p className="text-gray-400 mt-1">View all past and active packing sessions</p>
-      </div>
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }) +
+      ", " +
+      d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  };
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <svg className="animate-spin h-8 w-8 text-blue-500" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
+  return (
+    <div className="min-h-screen bg-bg">
+      {/* Navbar */}
+      <nav className="sticky top-0 z-50 bg-bg/80 backdrop-blur border-b border-border">
+        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <Package className="w-5 h-5 text-accent" />
+            <span className="font-display font-bold text-sm tracking-wider text-text-primary">
+              PACKTRAQ
+            </span>
+          </Link>
+          <Link
+            href="/"
+            className="flex items-center gap-2 bg-accent text-bg font-display font-semibold rounded-xl px-5 py-2 text-sm hover:bg-sky-300 transition-all active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            New Session
+          </Link>
         </div>
-      ) : sessions.length === 0 ? (
-        <div className="text-center py-20">
-          <svg className="w-16 h-16 text-gray-700 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-          </svg>
-          <p className="text-gray-500 text-lg font-medium">No sessions yet</p>
-          <p className="text-gray-600 text-sm mt-1">Start a new packing session from the dashboard</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sessions.map((session) => (
-            <SessionCard key={session.id} session={session} />
-          ))}
-        </div>
-      )}
+      </nav>
+
+      {/* Content */}
+      <div className="max-w-6xl mx-auto p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <h1 className="font-display font-black text-3xl text-text-primary">
+            SESSION HISTORY
+          </h1>
+          <p className="text-muted text-sm mt-1">
+            {sessions.length} sessions recorded
+          </p>
+        </motion.div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 text-accent animate-spin" />
+          </div>
+        ) : sessions.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-20"
+          >
+            <Package className="w-16 h-16 text-muted mx-auto mb-4" />
+            <p className="text-text-secondary text-lg font-medium">
+              No sessions recorded yet
+            </p>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 mt-4 text-accent hover:text-sky-300 text-sm font-semibold transition-colors"
+            >
+              Start your first packing session →
+            </Link>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="mt-6"
+          >
+            <div className="bg-panel border border-border rounded-2xl overflow-hidden w-full">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-surface border-b border-border">
+                    <th className="text-left px-4 py-3 text-muted text-xs uppercase tracking-widest font-display">
+                      #
+                    </th>
+                    <th className="text-left px-4 py-3 text-muted text-xs uppercase tracking-widest font-display">
+                      Operator
+                    </th>
+                    <th className="text-left px-4 py-3 text-muted text-xs uppercase tracking-widest font-display">
+                      Batch ID
+                    </th>
+                    <th className="text-left px-4 py-3 text-muted text-xs uppercase tracking-widest font-display">
+                      Date
+                    </th>
+                    <th className="text-left px-4 py-3 text-muted text-xs uppercase tracking-widest font-display">
+                      Box Count
+                    </th>
+                    <th className="text-left px-4 py-3 text-muted text-xs uppercase tracking-widest font-display">
+                      Status
+                    </th>
+                    <th className="text-right px-4 py-3 text-muted text-xs uppercase tracking-widest font-display">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessions.map((s) => (
+                    <tr
+                      key={s.id}
+                      className="border-b border-border/50 hover:bg-surface/60 transition-colors"
+                    >
+                      <td className="px-4 py-3.5 font-display font-bold text-accent">
+                        {s.id}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <User className="w-3.5 h-3.5 text-muted" />
+                          <span className="text-text-primary text-sm">
+                            {s.operator_id}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className="font-mono bg-surface border border-border rounded px-2 py-0.5 text-sm text-text-secondary">
+                          {s.batch_id}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-text-secondary text-sm">
+                        {formatDate(s.started_at)}
+                      </td>
+                      <td className="px-4 py-3.5 font-display font-bold text-success text-lg">
+                        {s.final_box_count}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <StatusBadge status={s.status} />
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center justify-end gap-2">
+                          {s.status === "completed" && (
+                            <>
+                              <a
+                                href={API.challanUrl(s.id)}
+                                target="_blank"
+                                className="p-2 rounded-lg hover:bg-surface border border-transparent hover:border-border text-muted hover:text-accent transition-all"
+                                title="Download PDF"
+                              >
+                                <FileDown className="w-4 h-4" />
+                              </a>
+                              <a
+                                href={API.videoUrl(s.id)}
+                                target="_blank"
+                                className="p-2 rounded-lg hover:bg-surface border border-transparent hover:border-border text-muted hover:text-accent transition-all"
+                                title="Play Video"
+                              >
+                                <Play className="w-4 h-4" />
+                              </a>
+                            </>
+                          )}
+                          {(s.status === "active" ||
+                            s.status === "processing") && (
+                            <Link
+                              href={`/session/${s.id}`}
+                              className="text-xs text-accent hover:text-sky-300 font-semibold transition-colors"
+                            >
+                              View →
+                            </Link>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }

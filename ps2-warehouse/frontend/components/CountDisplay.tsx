@@ -2,18 +2,30 @@
 
 interface Props {
   count: number;
-  label?: string;
+  visible: number;
+  active: boolean;
 }
 
-export default function CountDisplay({ count, label = "Box Count" }: Props) {
+export default function CountDisplay({ count, visible, active }: Props) {
   return (
-    <div className="text-center py-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400 mb-2">{label}</p>
-      <div className="relative inline-block">
-        <p className="text-8xl font-black tabular-nums bg-gradient-to-b from-green-300 to-green-500 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(74,222,128,0.3)]">
-          {count}
-        </p>
-      </div>
+    <div
+      className={`bg-panel border border-border rounded-2xl p-8 text-center ${
+        active ? "animate-pulse_ring" : ""
+      }`}
+    >
+      <p className="text-muted text-xs tracking-widest uppercase mb-4">
+        BOXES COUNTED
+      </p>
+      <span
+        key={count}
+        className="font-display font-black text-8xl text-success leading-none inline-block animate-count_pop"
+      >
+        {count}
+      </span>
+      <p className="text-muted text-sm mt-3">unique boxes detected</p>
+      <p className="text-text-secondary text-sm mt-1">
+        {visible} visible in frame
+      </p>
     </div>
   );
 }

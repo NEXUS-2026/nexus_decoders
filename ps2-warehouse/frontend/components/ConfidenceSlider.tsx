@@ -6,13 +6,15 @@ interface Props {
 }
 
 export default function ConfidenceSlider({ value, onChange }: Props) {
+  const pct = ((value - 0.1) / (0.95 - 0.1)) * 100;
+
   return (
-    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+    <div className="bg-panel border border-border rounded-2xl p-5">
       <div className="flex items-center justify-between mb-3">
-        <label className="text-sm font-medium text-gray-300">
-          Confidence Threshold
-        </label>
-        <span className="text-sm font-bold text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-lg">
+        <span className="font-display text-xs tracking-widest text-muted uppercase">
+          Detection Confidence
+        </span>
+        <span className="bg-accent/10 text-accent border border-accent/20 rounded-full px-3 py-0.5 text-sm font-display font-bold">
           {value.toFixed(2)}
         </span>
       </div>
@@ -24,11 +26,14 @@ export default function ConfidenceSlider({ value, onChange }: Props) {
         step={0.05}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full h-2 bg-gray-700 rounded-full appearance-none cursor-pointer accent-blue-500"
+        className="w-full"
+        style={{
+          background: `linear-gradient(to right, #38bdf8 ${pct}%, #1f2d44 ${pct}%)`,
+        }}
       />
-      <div className="flex justify-between mt-1">
-        <span className="text-[10px] text-gray-600">0.10</span>
-        <span className="text-[10px] text-gray-600">0.95</span>
+      <div className="flex justify-between mt-1.5">
+        <span className="text-[10px] text-muted">0.10</span>
+        <span className="text-[10px] text-muted">0.95</span>
       </div>
     </div>
   );

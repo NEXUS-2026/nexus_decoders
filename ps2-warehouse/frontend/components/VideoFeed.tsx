@@ -1,16 +1,24 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { WifiOff, Loader2 } from "lucide-react";
 import { API } from "@/lib/api";
 
 interface Props {
   sessionId: number;
   onCountUpdate: (count: number) => void;
+  onVisibleUpdate?: (visible: number) => void;
 }
 
-export default function VideoFeed({ sessionId, onCountUpdate }: Props) {
+export default function VideoFeed({
+  sessionId,
+  onCountUpdate,
+  onVisibleUpdate,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
+  const [fps, setFps] = useState(0);
+  const frameCountRef = useRef(0);
 
   useEffect(() => {
     const ws = new WebSocket(API.feedWsUrl(sessionId));
@@ -19,10 +27,17 @@ export default function VideoFeed({ sessionId, onCountUpdate }: Props) {
 
     ws.onopen = () => setConnected(true);
     ws.onclose = () => setConnected(false);
+    ws.onerror = () => setConnected(false);
+
+    // FPS counter
+    const fpsInterval = setInterval(() => {
+      setFps(frameCountRef.current);
+      frameCountRef.current = 0;
+    }, 1000);
 
     ws.onmessage = (event) => {
       if (event.data instanceof ArrayBuffer) {
-        // JPEG frame — draw to canvas
+        frameCountRef.current++;
         const blob = new Blob([event.data], { type: "image/jpeg" });
         const url = URL.createObjectURL(blob);
         const img = new Image();
@@ -37,11 +52,14 @@ export default function VideoFeed({ sessionId, onCountUpdate }: Props) {
         };
         img.src = url;
       } else {
-        // JSON count update
         try {
           const data = JSON.parse(event.data);
           if (data.count !== undefined) onCountUpdate(data.count);
-        } catch { /* ignore parse errors */ }
+          if (data.visible !== undefined && onVisibleUpdate)
+            onVisibleUpdate(data.visible);
+        } catch {
+          /* ignore */
+        }
       }
     };
 
@@ -52,34 +70,58 @@ export default function VideoFeed({ sessionId, onCountUpdate }: Props) {
 
     return () => {
       clearInterval(ping);
+      clearInterval(fpsInterval);
       ws.close();
     };
-  }, [sessionId, onCountUpdate]);
+  }, [sessionId, onCountUpdate, onVisibleUpdate]);
 
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black/50">
-      {/* Connection indicator */}
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-full px-3 py-1.5">
-        <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
-        <span className="text-xs text-gray-300">{connected ? "LIVE" : "Disconnected"}</span>
-      </div>
-
-      <canvas
-        ref={canvasRef}
-        className="w-full aspect-video bg-gray-900"
-      />
-
-      {!connected && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="text-center">
-            <svg className="w-12 h-12 text-gray-500 mx-auto mb-3 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            <p className="text-gray-400 text-sm">Waiting for detection engine...</p>
-            <p className="text-gray-600 text-xs mt-1">Start the engine to see live feed</p>
+    <div className="bg-panel border border-border rounded-2xl overflow-hidden shadow-panel">
+      {/* Header Bar */}
+      <div className="bg-surface px-4 py-2.5 flex items-center justify-between border-b border-border">
+        <span className="font-display text-xs tracking-widest text-muted uppercase">
+          Live Feed
+        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted font-mono">640 × 480</span>
+          {connected && (
+            <span className="text-xs text-accent font-mono bg-accent/10 px-2 py-0.5 rounded">
+              {fps} fps
+            </span>
+          )}
+          <div className="flex items-center gap-1.5">
+            <div
+              className={`w-2 h-2 rounded-full ${
+                connected ? "bg-success animate-pulse" : "bg-red-500"
+              }`}
+            />
+            <span className="text-xs text-muted">
+              {connected ? "Connected" : "Offline"}
+            </span>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Canvas */}
+      <div className="relative">
+        <canvas ref={canvasRef} className="w-full aspect-video bg-black" />
+
+        {/* Disconnected Overlay */}
+        {!connected && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+            <div className="text-center">
+              <WifiOff className="w-10 h-10 text-muted mx-auto mb-3" />
+              <p className="text-text-secondary text-sm font-medium">
+                Waiting for detection engine...
+              </p>
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <Loader2 className="w-4 h-4 text-accent animate-spin" />
+                <p className="text-muted text-xs">Connecting</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

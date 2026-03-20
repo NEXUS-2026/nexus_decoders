@@ -1,6 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { User, Hash, Loader2, Upload, Radio, Film } from "lucide-react";
 import { API } from "@/lib/api";
 
 export default function SessionForm() {
@@ -8,70 +10,219 @@ export default function SessionForm() {
   const [operatorId, setOperatorId] = useState("");
   const [batchId, setBatchId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [inputMode, setInputMode] = useState<"upload" | "live">("upload");
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    const files = e.dataTransfer.files;
+    if (files?.[0] && files[0].type.startsWith("video/")) {
+      setVideoFile(files[0]);
+    }
+  }, []);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) setVideoFile(file);
+  };
 
   async function handleStart() {
     if (!operatorId || !batchId) return;
+    if (inputMode === "upload" && !videoFile) return;
+
     setLoading(true);
     try {
-      const session = await API.startSession(operatorId, batchId);
-      router.push(`/session/${session.session_id}`);
+      const session = await API.startSession(operatorId, batchId, inputMode);
+      const sessionId = session.session_id;
+
+      if (inputMode === "upload" && videoFile) {
+        await API.uploadVideo(sessionId, videoFile);
+      }
+
+      router.push(`/session/${sessionId}`);
     } catch (err) {
       console.error("Failed to start session:", err);
       setLoading(false);
     }
   }
 
+  const canStart =
+    operatorId &&
+    batchId &&
+    (inputMode === "live" || (inputMode === "upload" && videoFile));
+
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-white">New Session</h2>
-            <p className="text-sm text-gray-400">Start a packing session</p>
-          </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.1 }}
+      className="w-full max-w-md"
+    >
+      <div className="bg-panel border border-border rounded-2xl p-8 shadow-panel">
+        <p className="text-accent text-xs font-semibold tracking-widest uppercase mb-6">
+          NEW SESSION
+        </p>
+
+        {/* Mode Toggle */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setInputMode("upload")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              inputMode === "upload"
+                ? "bg-accent/15 text-accent border border-accent/30"
+                : "bg-surface border border-border text-muted hover:text-text-primary"
+            }`}
+          >
+            <Upload className="w-4 h-4" />
+            Upload Video
+          </button>
+          <button
+            onClick={() => setInputMode("live")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              inputMode === "live"
+                ? "bg-accent/15 text-accent border border-accent/30"
+                : "bg-surface border border-border text-muted hover:text-text-primary"
+            }`}
+          >
+            <Radio className="w-4 h-4" />
+            Live Feed
+          </button>
         </div>
 
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Operator ID</label>
+          {/* Operator ID */}
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted">
+              <User className="w-4 h-4" />
+            </div>
             <input
               id="operator-id"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
-              placeholder="e.g. OP001"
+              className="w-full bg-surface border border-border rounded-xl pl-10 pr-4 py-3 text-text-primary font-body placeholder:text-muted focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all"
+              placeholder="e.g. OP-001"
               value={operatorId}
               onChange={(e) => setOperatorId(e.target.value)}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Batch ID</label>
+          {/* Batch ID */}
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted">
+              <Hash className="w-4 h-4" />
+            </div>
             <input
               id="batch-id"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
-              placeholder="e.g. BATCH-42"
+              className="w-full bg-surface border border-border rounded-xl pl-10 pr-4 py-3 text-text-primary font-body placeholder:text-muted focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all"
+              placeholder="e.g. BATCH-042"
               value={batchId}
               onChange={(e) => setBatchId(e.target.value)}
             />
           </div>
 
+          {/* Video Upload Zone */}
+          {inputMode === "upload" && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div
+                className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${
+                  dragActive
+                    ? "border-accent bg-accent/5"
+                    : videoFile
+                    ? "border-success/40 bg-success/5"
+                    : "border-border hover:border-muted"
+                }`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="video/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                {videoFile ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <Film className="w-5 h-5 text-success" />
+                    <div className="text-left">
+                      <p className="text-sm text-text-primary font-medium truncate max-w-[200px]">
+                        {videoFile.name}
+                      </p>
+                      <p className="text-xs text-muted">
+                        {(videoFile.size / (1024 * 1024)).toFixed(1)} MB
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setVideoFile(null);
+                      }}
+                      className="text-muted hover:text-red-400 text-xs ml-2"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-8 h-8 text-muted mx-auto mb-2" />
+                    <p className="text-sm text-muted">
+                      Drag & drop video file or{" "}
+                      <span className="text-accent">browse</span>
+                    </p>
+                    <p className="text-xs text-muted/60 mt-1">
+                      MP4, AVI, MOV supported
+                    </p>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Live Feed Note */}
+          {inputMode === "live" && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="bg-surface border border-border rounded-xl p-4"
+            >
+              <p className="text-xs text-text-secondary">
+                <Radio className="w-3.5 h-3.5 inline mr-1.5 text-accent" />
+                Start the session, then run the detection engine on your Linux machine pointing to this session ID.
+              </p>
+            </motion.div>
+          )}
+
+          {/* Start Button */}
           <button
             id="start-session-btn"
-            className="w-full mt-4 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white rounded-xl px-6 py-3.5 font-semibold text-base transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 active:scale-[0.98]"
+            className="w-full bg-accent text-bg font-display font-bold text-base rounded-xl py-4 hover:bg-sky-300 transition-all shadow-glow-blue active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed mt-2"
             onClick={handleStart}
-            disabled={loading || !operatorId || !batchId}
+            disabled={loading || !canStart}
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Starting...
+                <Loader2 className="animate-spin w-4 h-4" />
+                Initializing...
               </span>
             ) : (
               "Start Session"
@@ -79,6 +230,6 @@ export default function SessionForm() {
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

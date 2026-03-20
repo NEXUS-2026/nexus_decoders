@@ -1,10 +1,30 @@
 "use client";
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
+import { motion } from "framer-motion";
+import {
+  Package,
+  Square,
+  Loader2,
+  CheckCircle2,
+  FileDown,
+  Video,
+} from "lucide-react";
 import VideoFeed from "@/components/VideoFeed";
 import CountDisplay from "@/components/CountDisplay";
 import ConfidenceSlider from "@/components/ConfidenceSlider";
 import { API } from "@/lib/api";
+import Link from "next/link";
+
+interface SessionInfo {
+  id: number;
+  operator_id: string;
+  batch_id: string;
+  started_at: string;
+  status: string;
+  input_mode: string;
+  final_box_count: number;
+}
 
 interface SessionResult {
   session_id: number;
@@ -16,13 +36,85 @@ interface SessionResult {
 export default function SessionPage() {
   const params = useParams();
   const sessionId = Number(params.id);
-  const router = useRouter();
 
   const [count, setCount] = useState(0);
+  const [visible, setVisible] = useState(0);
   const [conf, setConf] = useState(0.45);
   const [stopped, setStopped] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [result, setResult] = useState<SessionResult | null>(null);
+  const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  // Fetch session info
+  useEffect(() => {
+    API.getSession(sessionId)
+      .then((data) => {
+        setSessionInfo(data);
+        if (data.status === "completed") {
+          setStopped(true);
+          setResult({
+            session_id: data.id,
+            final_box_count: data.final_box_count,
+            challan_url: `/api/files/challan/${data.id}`,
+            video_url: `/api/files/video/${data.id}`,
+          });
+        }
+      })
+      .catch(console.error);
+  }, [sessionId]);
+
+  // Poll detection status for upload mode
+  useEffect(() => {
+    if (!sessionInfo || sessionInfo.input_mode !== "upload" || stopped) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const status = await API.getDetectionStatus(sessionId);
+        if (status.count !== undefined) setCount(status.count);
+        if (status.visible !== undefined) setVisible(status.visible);
+
+        if (status.status === "completed") {
+          clearInterval(interval);
+          // Fetch final session data
+          const session = await API.getSession(sessionId);
+          setStopped(true);
+          setResult({
+            session_id: session.id,
+            final_box_count: session.final_box_count,
+            challan_url: `/api/files/challan/${session.id}`,
+            video_url: `/api/files/video/${session.id}`,
+          });
+          setCount(session.final_box_count);
+        }
+      } catch {
+        /* ignore */
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [sessionId, sessionInfo, stopped]);
+
+  // Elapsed timer
+  useEffect(() => {
+    if (stopped) return;
+    const interval = setInterval(() => {
+      setElapsedSeconds((s) => s + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [stopped]);
+
+  const formatElapsed = (secs: number) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return `${h.toString().padStart(2, "0")}:${m
+      .toString()
+      .padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const handleCountUpdate = useCallback((c: number) => setCount(c), []);
+  const handleVisibleUpdate = useCallback((v: number) => setVisible(v), []);
 
   async function handleStop() {
     setStopping(true);
@@ -30,110 +122,234 @@ export default function SessionPage() {
       const data = await API.stopSession(sessionId);
       setResult(data);
       setStopped(true);
+      setCount(data.final_box_count);
     } catch (err) {
       console.error("Failed to stop session:", err);
     }
     setStopping(false);
   }
 
+  const isLive = sessionInfo?.input_mode === "live";
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <p className="text-sm text-gray-500">Live Session</p>
-          <h1 className="text-2xl font-bold tracking-tight">Session #{sessionId}</h1>
-        </div>
-        {!stopped && (
-          <button
-            id="stop-session-btn"
-            className="bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/20 px-6 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50"
-            onClick={handleStop}
-            disabled={stopping}
-          >
-            {stopping ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Stopping...
+    <div className="min-h-screen bg-bg">
+      {/* Sticky Navbar */}
+      <nav className="sticky top-0 z-50 bg-bg/80 backdrop-blur border-b border-border">
+        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
+          {/* Left */}
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-accent" />
+              <span className="font-display font-bold text-sm tracking-wider text-text-primary">
+                PACKTRAQ
               </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <rect x="6" y="6" width="12" height="12" rx="1" />
-                </svg>
-                Stop Session
-              </span>
-            )}
-          </button>
-        )}
-      </div>
-
-      {/* Video Feed */}
-      <VideoFeed sessionId={sessionId} onCountUpdate={setCount} />
-
-      {/* Count Display */}
-      <CountDisplay count={count} />
-
-      {/* Controls */}
-      {!stopped && (
-        <div className="mt-4">
-          <ConfidenceSlider value={conf} onChange={setConf} />
-        </div>
-      )}
-
-      {/* Completed State */}
-      {stopped && result && (
-        <div className="mt-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-full bg-green-500/15 flex items-center justify-center">
-              <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white">Session Complete</h2>
-              <p className="text-sm text-gray-400">
-                Final count: <span className="text-green-400 font-bold">{result.final_box_count}</span> boxes
-              </p>
-            </div>
+            </Link>
+            <span className="bg-surface border border-border rounded-full px-3 py-1 text-xs font-display text-text-secondary">
+              Session #{sessionId}
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <a
-              href={API.challanUrl(sessionId)}
-              target="_blank"
-              className="flex items-center justify-center gap-2 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/20 py-3 rounded-xl font-semibold text-sm transition-all"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Download Challan (PDF)
-            </a>
+          {/* Center — Live indicator */}
+          {!stopped && (
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-success animate-pulse inline-block" />
+              <span className="text-success text-xs font-semibold tracking-widest uppercase">
+                {sessionInfo?.input_mode === "upload" ? "PROCESSING" : "LIVE"}
+              </span>
+            </div>
+          )}
+
+          {/* Right */}
+          {!stopped && isLive && (
             <button
-              onClick={() => router.push("/history")}
-              className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 py-3 rounded-xl font-semibold text-sm transition-all"
+              onClick={handleStop}
+              disabled={stopping}
+              className="bg-red-600/90 hover:bg-red-500 text-white font-display font-semibold rounded-xl px-6 py-2 transition-all active:scale-95 flex items-center gap-2 text-sm disabled:opacity-50"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-              </svg>
-              View History
+              {stopping ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Stopping...
+                </>
+              ) : (
+                <>
+                  <Square className="w-3.5 h-3.5" />
+                  Stop Session
+                </>
+              )}
             </button>
-          </div>
-
-          {/* Recorded Video Playback */}
-          <div className="mt-5">
-            <p className="text-sm text-gray-400 mb-2">Recorded Video</p>
-            <video
-              src={API.videoUrl(sessionId)}
-              controls
-              className="w-full rounded-xl border border-white/10"
-            />
-          </div>
+          )}
+          {stopped && (
+            <Link
+              href="/history"
+              className="text-sm text-muted hover:text-text-primary transition-colors"
+            >
+              View History →
+            </Link>
+          )}
         </div>
-      )}
+      </nav>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Left Column */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* Video Feed */}
+          {!stopped && (
+            <VideoFeed
+              sessionId={sessionId}
+              onCountUpdate={handleCountUpdate}
+              onVisibleUpdate={handleVisibleUpdate}
+            />
+          )}
+
+          {/* Confidence Slider */}
+          {!stopped && isLive && (
+            <ConfidenceSlider value={conf} onChange={setConf} />
+          )}
+
+          {/* Processing progress for upload mode */}
+          {!stopped && sessionInfo?.input_mode === "upload" && (
+            <UploadProgress sessionId={sessionId} />
+          )}
+        </div>
+
+        {/* Right Column */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Count Display */}
+          <CountDisplay count={count} visible={visible} active={!stopped} />
+
+          {/* Session Info or Complete Panel */}
+          {!stopped ? (
+            <div className="bg-panel border border-border rounded-2xl p-5">
+              <div className="grid grid-cols-3 gap-4 divide-x divide-border">
+                <div className="text-center">
+                  <p className="text-muted text-xs uppercase tracking-wide">
+                    Operator
+                  </p>
+                  <p className="font-display font-semibold text-text-primary text-sm mt-1">
+                    {sessionInfo?.operator_id || "—"}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-muted text-xs uppercase tracking-wide">
+                    Batch
+                  </p>
+                  <p className="font-display font-semibold text-text-primary text-sm mt-1">
+                    {sessionInfo?.batch_id || "—"}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-muted text-xs uppercase tracking-wide">
+                    Elapsed
+                  </p>
+                  <p className="font-display font-semibold text-text-primary text-sm mt-1 font-mono">
+                    {formatElapsed(elapsedSeconds)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            result && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="bg-panel border border-success/30 rounded-2xl p-6"
+              >
+                <div className="flex items-center gap-3 mb-5">
+                  <CheckCircle2 className="w-8 h-8 text-success" />
+                  <h2 className="font-display font-bold text-xl text-text-primary">
+                    SESSION COMPLETE
+                  </h2>
+                </div>
+
+                <p className="font-display text-5xl font-black text-success text-center mb-6">
+                  {result.final_box_count}
+                </p>
+                <p className="text-muted text-sm text-center mb-6">
+                  boxes counted
+                </p>
+
+                <div className="space-y-3">
+                  <a
+                    href={API.challanUrl(sessionId)}
+                    target="_blank"
+                    className="w-full flex items-center justify-center gap-2 bg-accent text-bg font-display font-bold rounded-xl py-3.5 hover:bg-sky-300 transition-all active:scale-95"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    Download Challan PDF
+                  </a>
+                  <a
+                    href={API.videoUrl(sessionId)}
+                    target="_blank"
+                    className="w-full flex items-center justify-center gap-2 border border-border text-text-primary hover:bg-surface font-display font-semibold rounded-xl py-3.5 transition-all"
+                  >
+                    <Video className="w-4 h-4" />
+                    Download Session Video
+                  </a>
+                </div>
+
+                <video
+                  src={API.videoUrl(sessionId)}
+                  controls
+                  className="w-full rounded-xl mt-5 border border-border"
+                />
+              </motion.div>
+            )
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Upload Progress Component */
+function UploadProgress({ sessionId }: { sessionId: number }) {
+  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState("processing");
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const data = await API.getDetectionStatus(sessionId);
+        setProgress(data.progress || 0);
+        setStatus(data.status || "unknown");
+        if (data.status === "completed" || data.status === "error") {
+          clearInterval(interval);
+        }
+      } catch {
+        /* ignore */
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, [sessionId]);
+
+  return (
+    <div className="bg-panel border border-border rounded-2xl p-5">
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-display text-xs tracking-widest text-muted uppercase">
+          Detection Progress
+        </span>
+        <span className="text-xs text-accent font-display font-bold">
+          {progress}%
+        </span>
+      </div>
+      <div className="w-full bg-surface rounded-full h-2 overflow-hidden">
+        <div
+          className="bg-accent h-full rounded-full transition-all duration-300"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      <p className="text-xs text-muted mt-2">
+        {status === "running"
+          ? "Analyzing video frames..."
+          : status === "completed"
+          ? "Detection complete!"
+          : status === "error"
+          ? "An error occurred"
+          : "Initializing..."}
+      </p>
     </div>
   );
 }
