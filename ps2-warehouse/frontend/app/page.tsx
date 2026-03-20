@@ -17,7 +17,7 @@ export default function Home() {
         <div className="flex items-center justify-center gap-3 mb-3">
           <Package className="w-9 h-9 text-accent" />
           <h1 className="font-display font-black text-4xl tracking-[0.2em] text-text-primary">
-            PACKTRAQ
+            DECODERS
           </h1>
         </div>
         <p className="text-muted text-xs tracking-widest uppercase">

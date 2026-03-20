@@ -15,7 +15,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "PackTraq — Warehouse Packing System",
+  title: "DECODERS — Warehouse Packing System",
   description:
     "Real-time warehouse box counting with YOLO detection, session management, video upload, and automated challan generation.",
 };

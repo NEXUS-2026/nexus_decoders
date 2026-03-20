@@ -141,7 +141,7 @@ export default function SessionPage() {
             <Link href="/" className="flex items-center gap-2">
               <Package className="w-5 h-5 text-accent" />
               <span className="font-display font-bold text-sm tracking-wider text-text-primary">
-                PACKTRAQ
+                DECODERS
               </span>
             </Link>
             <span className="bg-surface border border-border rounded-full px-3 py-1 text-xs font-display text-text-secondary">

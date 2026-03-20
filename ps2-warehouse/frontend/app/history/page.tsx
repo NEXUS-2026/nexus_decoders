@@ -54,7 +54,7 @@ export default function HistoryPage() {
           <Link href="/" className="flex items-center gap-2">
             <Package className="w-5 h-5 text-accent" />
             <span className="font-display font-bold text-sm tracking-wider text-text-primary">
-              PACKTRAQ
+              DECODERS
             </span>
           </Link>
           <Link

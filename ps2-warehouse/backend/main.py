@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="PackTraq Backend", lifespan=lifespan)
+app = FastAPI(title="DECODERS Backend", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
