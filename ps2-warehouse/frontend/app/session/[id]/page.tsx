@@ -74,7 +74,7 @@ export default function SessionPage() {
   }, [sessionId]);
 
   useEffect(() => {
-    if (!sessionInfo || sessionInfo.input_mode !== "upload" || stopped) return;
+    if (!sessionInfo || (sessionInfo.input_mode !== "upload" && sessionInfo.input_mode !== "ip_webcam") || stopped) return;
 
     const interval = setInterval(async () => {
       try {
@@ -191,11 +191,21 @@ export default function SessionPage() {
           {!stopped && (
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2">
               <span className="relative flex h-2 w-2">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${sessionInfo?.input_mode === "upload" ? "bg-amber-400" : "bg-emerald-400"}`} />
-                <span className={`relative inline-flex rounded-full h-2 w-2 ${sessionInfo?.input_mode === "upload" ? "bg-amber-500" : "bg-emerald-500"}`} />
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                  sessionInfo?.input_mode === "upload" ? "bg-amber-400" : 
+                  sessionInfo?.input_mode === "ip_webcam" ? "bg-blue-400" : "bg-emerald-400"
+                }`} />
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                  sessionInfo?.input_mode === "upload" ? "bg-amber-500" : 
+                  sessionInfo?.input_mode === "ip_webcam" ? "bg-blue-500" : "bg-emerald-500"
+                }`} />
               </span>
-              <span className={`text-[10px] font-mono tracking-widest uppercase ${sessionInfo?.input_mode === "upload" ? "text-amber-500" : "text-emerald-500"}`}>
-                {sessionInfo?.input_mode === "upload" ? "ANALYZING PAYLOAD" : "LIVE TELEMETRY"}
+              <span className={`text-[10px] font-mono tracking-widest uppercase ${
+                sessionInfo?.input_mode === "upload" ? "text-amber-500" : 
+                sessionInfo?.input_mode === "ip_webcam" ? "text-blue-500" : "text-emerald-500"
+              }`}>
+                {sessionInfo?.input_mode === "upload" ? "ANALYZING PAYLOAD" : 
+                 sessionInfo?.input_mode === "ip_webcam" ? "IP WEBCAM STREAM" : "LIVE TELEMETRY"}
               </span>
             </div>
           )}
@@ -251,12 +261,12 @@ export default function SessionPage() {
         </div>
       </nav>
 
-      {/* Main Layout Grid */}
-      <div className="max-w-7xl w-full mx-auto p-6 pt-24 pb-16 flex-1 flex flex-col relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+      {/* Main Layout - Full Width Flex */}
+      <div className="w-full p-6 pt-24 pb-16 flex-1 flex flex-col relative z-10">
+        <div className="flex flex-col lg:flex-row gap-6 flex-1">
          
-          {/* Left Column (Video & Inputs) - 7 cols */}
-          <div className="lg:col-span-7 space-y-6 flex flex-col">
+          {/* Left Column (Video & Inputs) */}
+          <div className="flex-1 space-y-6 flex flex-col">
             {!stopped && (
               <div className="space-y-4">
                 <VideoFeed
@@ -295,13 +305,13 @@ export default function SessionPage() {
               <ConfidenceSlider value={conf} onChange={setConf} />
             )}
 
-            {!stopped && sessionInfo?.input_mode === "upload" && (
+            {!stopped && (sessionInfo?.input_mode === "upload" || sessionInfo?.input_mode === "ip_webcam") && (
               <UploadProgress sessionId={sessionId} />
             )}
           </div>
 
-          {/* Right Column (Telemetry & Logs) - 5 cols */}
-          <div className="lg:col-span-5 space-y-6">
+          {/* Right Column (Telemetry & Results) */}
+          <div className="lg:w-96 space-y-6">
            
             <CountDisplay count={count} visible={visible} active={!stopped} />
 
@@ -359,15 +369,15 @@ export default function SessionPage() {
                       {result.final_box_count}
                      </p>
                      <p className="text-[10px] font-mono text-neutral-500 tracking-widest uppercase mt-4">
-                      Total Units Indexed
+                       Total Units Indexed
                      </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 mt-auto">
+                  <div className="flex gap-3 mt-auto">
                     <a
                       href={API.challanUrl(sessionId)}
                       target="_blank"
-                      className="flex items-center justify-center gap-2 bg-[#050505] border border-neutral-800 hover:border-neutral-600 text-neutral-300 font-mono text-[10px] uppercase tracking-widest rounded-lg py-3 transition-colors group"
+                      className="flex-1 flex items-center justify-center gap-2 bg-[#050505] border border-neutral-800 hover:border-neutral-600 text-neutral-300 font-mono text-[10px] uppercase tracking-widest rounded-lg py-3 transition-colors group"
                     >
                       <FileDown className="w-4 h-4 text-neutral-500 group-hover:text-white transition-colors" />
                       Manifest
@@ -375,7 +385,7 @@ export default function SessionPage() {
                     <a
                       href={API.videoUrl(sessionId)}
                       target="_blank"
-                      className="flex items-center justify-center gap-2 bg-[#050505] border border-neutral-800 hover:border-neutral-600 text-neutral-300 font-mono text-[10px] uppercase tracking-widest rounded-lg py-3 transition-colors group"
+                      className="flex-1 flex items-center justify-center gap-2 bg-[#050505] border border-neutral-800 hover:border-neutral-600 text-neutral-300 font-mono text-[10px] uppercase tracking-widest rounded-lg py-3 transition-colors group"
                     >
                       <Video className="w-4 h-4 text-neutral-500 group-hover:text-white transition-colors" />
                       Playback

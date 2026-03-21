@@ -18,6 +18,7 @@ new_columns = [
     ("challan_no",     "TEXT DEFAULT ''"),
     ("pickup_date",    "TEXT DEFAULT ''"),
     ("products_json",  "TEXT DEFAULT '[]'"),
+    ("challan_email",  "TEXT DEFAULT ''"),
 ]
 
 # Get existing columns

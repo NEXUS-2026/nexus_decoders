@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from database import engine
-from routers import sessions, detection, files, settings
+from routers import sessions, detection, files, settings, analytics, test
 from services.cleanup import start_cleanup_scheduler
 from services.detection_runner import set_main_loop
 from pathlib import Path
@@ -22,11 +22,10 @@ except ImportError:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Always recreate tables to pick up schema changes (dev mode)
+    # Create tables if they don't exist (preserve existing data)
     from sqlmodel import SQLModel
     import models  # noqa: ensure all models are registered
-    SQLModel.metadata.drop_all(engine)
-    SQLModel.metadata.create_all(engine)
+    SQLModel.metadata.create_all(engine)  # Only create if not exists
     start_cleanup_scheduler()
     set_main_loop(asyncio.get_running_loop())
     uploads_dir = Path(__file__).parent.parent / "storage" / "uploads"
@@ -47,6 +46,8 @@ app.include_router(sessions.router, prefix="/api/sessions", tags=["sessions"])
 app.include_router(detection.router, tags=["detection"])
 app.include_router(files.router, prefix="/api/files", tags=["files"])
 app.include_router(settings.router, prefix="/api/settings", tags=["settings"])
+app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
+app.include_router(test.router, prefix="/api/test", tags=["test"])
 
 
 

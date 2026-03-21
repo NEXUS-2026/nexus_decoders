@@ -2,7 +2,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, UploadCloud, Radio, X, FileVideo, Plus, Trash2 } from "lucide-react";
+import { Loader2, UploadCloud, Radio, X, FileVideo, Plus, Trash2, Mail } from "lucide-react";
 import { API, ProductItem } from "@/lib/api";
 
 export default function SessionForm() {
@@ -16,6 +16,7 @@ export default function SessionForm() {
   const [challanNo, setChallanNo] = useState("");
   const [pickupDate, setPickupDate] = useState("");
   const [batchId, setBatchId] = useState(""); // Acts as "Lot No."
+  const [challanEmail, setChallanEmail] = useState(""); // New email field
 
   // Dynamic product rows — N items supported
   const [products, setProducts] = useState<ProductItem[]>([
@@ -33,9 +34,10 @@ export default function SessionForm() {
   }
 
   const [loading, setLoading] = useState(false);
-  const [inputMode, setInputMode] = useState<"upload" | "live">("upload");
+  const [inputMode, setInputMode] = useState<"upload" | "live" | "ip_webcam">("upload");
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [ipWebcamUrl, setIpWebcamUrl] = useState("http://192.168.1.5:8080");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- LOGIC REMAINS EXACTLY UNCHANGED ---
@@ -67,6 +69,7 @@ export default function SessionForm() {
   async function handleStart() {
     if (!operatorId || !batchId || !customerMs || !challanNo) return;
     if (inputMode === "upload" && !videoFile) return;
+    if (inputMode === "ip_webcam" && !ipWebcamUrl) return;
 
     setLoading(true);
     try {
@@ -80,6 +83,8 @@ export default function SessionForm() {
         challan_no: challanNo,
         pickup_date: pickupDate,
         products: products.map(p => ({ name: p.name, qty: Number(p.qty) || 0 })),
+        ip_webcam_url: inputMode === "ip_webcam" ? ipWebcamUrl : "",
+        challan_email: challanEmail,
       });
       const sessionId = session.session_id;
 
@@ -97,7 +102,7 @@ export default function SessionForm() {
   const canStart =
     operatorId &&
     batchId && customerMs && challanNo &&
-    (inputMode === "live" || (inputMode === "upload" && videoFile));
+    (inputMode === "live" || (inputMode === "upload" && videoFile) || (inputMode === "ip_webcam" && ipWebcamUrl));
   // --------------------------------------
 
   return (
@@ -107,8 +112,8 @@ export default function SessionForm() {
         <div className="flex relative bg-neutral-950 rounded-md p-1">
           {/* Sliding Background Indicator */}
           <div
-            className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-neutral-800 rounded shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-              inputMode === "upload" ? "translate-x-0" : "translate-x-[calc(100%+8px)]"
+            className={`absolute top-1 bottom-1 w-[calc(33.333%-2.66px)] bg-neutral-800 rounded shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+              inputMode === "upload" ? "translate-x-0" : inputMode === "live" ? "translate-x-[calc(100%+4px)]" : "translate-x-[calc(200%+8px)]"
             }`}
           />
          
@@ -127,6 +132,14 @@ export default function SessionForm() {
             }`}
           >
             Live Stream
+          </button>
+          <button
+            onClick={() => setInputMode("ip_webcam")}
+            className={`relative z-10 flex-1 py-2 text-xs font-medium tracking-wide transition-colors duration-200 ${
+              inputMode === "ip_webcam" ? "text-neutral-100" : "text-neutral-500 hover:text-neutral-300"
+            }`}
+          >
+            IP Webcam
           </button>
         </div>
       </div>
@@ -178,6 +191,21 @@ export default function SessionForm() {
                 <td className="border-r border-neutral-600 p-2">Lot No.</td>
                 <td className="p-0">
                   <input placeholder="10" className="w-full h-full bg-transparent p-2 focus:outline-none text-white focus:bg-white/5" value={batchId} onChange={e => setBatchId(e.target.value)} />
+                </td>
+              </tr>
+              <tr className="border-b border-neutral-600">
+                <td className="border-r border-neutral-600 p-2 flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-neutral-400" />
+                  Email (Challan)
+                </td>
+                <td className="border-r border-neutral-600 p-0" colSpan="3">
+                  <input 
+                    type="email" 
+                    placeholder="customer@example.com (Optional - Email will be sent with challan)" 
+                    className="w-full h-full bg-transparent p-2 focus:outline-none text-white focus:bg-white/5" 
+                    value={challanEmail} 
+                    onChange={e => setChallanEmail(e.target.value)} 
+                  />
                 </td>
               </tr>
               <tr className="border-b border-neutral-600 border-b-[8px]">
@@ -305,7 +333,7 @@ export default function SessionForm() {
                   )}
                 </div>
               </motion.div>
-            ) : (
+            ) : inputMode === "live" ? (
               <motion.div
                 key="live"
                 initial={{ opacity: 0, y: 5 }}
@@ -320,6 +348,44 @@ export default function SessionForm() {
                   <p className="text-xs text-neutral-500 leading-relaxed max-w-sm">
                     Generate a session ID to initialize the socket. Point your local camera feed to the established endpoint.
                   </p>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="ip_webcam"
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={{ duration: 0.2 }}
+                className="h-full bg-neutral-950 border border-neutral-800 rounded-md p-6"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-500/10 border border-blue-500/20 rounded">
+                      <Radio className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-medium text-neutral-200">IP Webcam Configuration</h5>
+                      <p className="text-xs text-neutral-500">Connect directly to an IP webcam stream</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label htmlFor="ip-webcam-url" className="text-[10px] font-semibold text-neutral-500 uppercase tracking-widest">
+                      Webcam URL
+                    </label>
+                    <input
+                      id="ip-webcam-url"
+                      type="url"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded-md px-3 py-2 text-sm text-neutral-200 font-mono placeholder:text-neutral-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-colors"
+                      placeholder="http://192.168.1.5:8080"
+                      value={ipWebcamUrl}
+                      onChange={(e) => setIpWebcamUrl(e.target.value)}
+                    />
+                    <p className="text-xs text-neutral-500 font-mono">
+                      Default endpoint: <span className="text-blue-400">{ipWebcamUrl}/video</span>
+                    </p>
+                  </div>
                 </div>
               </motion.div>
             )}

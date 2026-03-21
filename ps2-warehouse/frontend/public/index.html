@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DECODERS - Warehouse Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: #000;
+            color: #e5e7eb;
+            font-family: 'Courier New', monospace;
+        }
+        .terminal-cursor {
+            animation: blink 1s step-endless infinite;
+        }
+        .glow {
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.8);
+        }
+        .slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        .feature-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.4);
+        }
+        .stat-number {
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.05em;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <div class="inline-flex items-center gap-3 mb-4">
+                <div class="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-2H4a2 2 0 012-2v2a2 2 0 01 2 2H7a5 5 0 00-5z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold text-green-400 glow">DECODERS</h1>
+                    <p class="text-xs text-gray-400 mt-1 tracking-widest uppercase">Real-Time Warehouse Management</p>
+                </div>
+            </div>
+            <div class="w-2 h-px bg-gray-800 rounded"></div>
+            <div class="flex gap-6">
+                <div class="text-right">
+                    <span class="terminal-cursor">_</span>
+                    <p class="text-sm">SYSTEM READY</p>
+                </div>
+                <div class="text-left">
+                    <p class="text-xs text-gray-500">v2.0.1</p>
+                    <p class="text-xs text-gray-400">IP WEBCAM INTEGRATION • ACTIVE</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="mb-16">
+            <div class="text-center mb-8">
+                <h2 class="text-4xl font-bold mb-4 text-white">
+                    <span class="glow">Intelligent Object Detection</span>
+                </h2>
+                <p class="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
+                    Advanced YOLO-powered computer vision for real-time box counting and warehouse management
+                </p>
+            </div>
+
+            <!-- Features Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+                <!-- Feature 1 -->
+                <div class="feature-card p-6 rounded-lg">
+                    <div class="text-green-400 text-2xl font-bold mb-3">📁</div>
+                    <h3 class="text-xl font-bold mb-2">Batch Upload</h3>
+                    <p class="text-gray-300 text-sm">Process video files with automated detection</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="feature-card p-6 rounded-lg">
+                    <div class="text-blue-400 text-2xl font-bold mb-3">📡</div>
+                    <h3 class="text-xl font-bold mb-2">Live Stream</h3>
+                    <p class="text-gray-300 text-sm">External camera feeds via WebSocket</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="feature-card p-6 rounded-lg border-green-500">
+                    <div class="text-blue-400 text-2xl font-bold mb-3">📹</div>
+                    <h3 class="text-xl font-bold mb-2">IP Webcam</h3>
+                    <p class="text-gray-300 text-sm">Direct IP camera connection</p>
+                    <div class="text-xs text-green-400 mt-2">✓ NEW</div>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="feature-card p-6 rounded-lg">
+                    <div class="text-purple-400 text-2xl font-bold mb-3">📊</div>
+                    <h3 class="text-xl font-bold mb-2">Analytics</h3>
+                    <p class="text-gray-300 text-sm">Real-time metrics and reporting</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Capabilities -->
+        <section class="mb-16">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold mb-4 text-white">Technical Capabilities</h2>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-gray-900 p-6 rounded-lg border border-gray-800">
+                    <h3 class="text-xl font-bold mb-4 text-green-400">Detection Engine</h3>
+                    <ul class="space-y-2 text-gray-300">
+                        <li>• YOLOv8 Object Detection</li>
+                        <li>• Real-time Processing (~30 FPS)</li>
+                        <li>• Customizable Confidence Thresholds</li>
+                        <li>• Advanced Box Tracking Algorithm</li>
+                        <li>• Multi-session Support</li>
+                    </ul>
+                </div>
+
+                <div class="bg-gray-900 p-6 rounded-lg border border-gray-800">
+                    <h3 class="text-xl font-bold mb-4 text-blue-400">Input Sources</h3>
+                    <ul class="space-y-2 text-gray-300">
+                        <li>• Video File Upload (MP4, AVI)</li>
+                        <li>• Live Camera Streams</li>
+                        <li>• IP Webcam Direct Connection</li>
+                        <li>• RTSP Protocol Support</li>
+                    </ul>
+                </div>
+
+                <div class="bg-gray-900 p-6 rounded-lg border border-gray-800">
+                    <h3 class="text-xl font-bold mb-4 text-purple-400">Performance</h3>
+                    <ul class="space-y-2 text-gray-300">
+                        <li>• 99.9%+ Uptime Reliability</li>
+                        <li>• Sub-100ms Response Times</li>
+                        <li>• 10+ Concurrent Sessions</li>
+                        <li>• Automated Error Recovery</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- IP Webcam Demo -->
+        <section class="mb-16">
+            <div class="bg-gradient-to-r from-green-900/20 to-blue-900/20 p-8 rounded-lg border border-green-500">
+                <div class="text-center">
+                    <h3 class="text-2xl font-bold mb-4 text-green-400">📹 IP Webcam Integration</h3>
+                    <p class="text-gray-300 mb-6">Direct connection to IP cameras with automatic stream discovery</p>
+                    
+                    <div class="bg-black p-4 rounded border border-gray-700 mb-6">
+                        <div class="text-center mb-4">
+                            <p class="text-sm text-gray-400 mb-2">Default Configuration</p>
+                            <div class="text-2xl font-mono text-green-400">http://192.168.1.5:8080/video</div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            <div class="text-center">
+                                <div class="text-green-400 text-lg mb-2">✓</div>
+                                <p>Auto-Discovery</p>
+                                <p class="text-xs text-gray-500">Tests common endpoints</p>
+                            </div>
+                            
+                            <div class="text-center">
+                                <div class="text-blue-400 text-lg mb-2">✓</div>
+                                <p>MJPEG Stream</p>
+                                <p class="text-xs text-gray-500">Optimized for bandwidth</p>
+                            </div>
+                            
+                            <div class="text-center">
+                                <div class="text-purple-400 text-lg mb-2">✓</div>
+                                <p>Error Recovery</p>
+                                <p class="text-xs text-gray-500">Automatic reconnection</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="text-center">
+            <div class="inline-flex gap-4 slide-in">
+                <a href="/session/new" class="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-bold transition-all duration-300 transform hover:scale-105">
+                    Launch Dashboard
+                </a>
+                <a href="#features" class="border border-green-500 text-green-400 px-8 py-3 rounded-lg font-bold hover:bg-green-500/20 transition-all duration-300">
+                    View Features
+                </a>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="mt-16 border-t border-gray-800 pt-8">
+            <div class="text-center text-gray-400 text-sm">
+                <p>&copy; 2026 DECODERS. Built with YOLO & FastAPI.</p>
+                <p class="text-xs text-gray-500 mt-2">Real-Time Object Detection • Warehouse Management • Analytics Platform</p>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
