@@ -38,13 +38,14 @@ class ProductItem(BaseModel):
 class StartSessionRequest(BaseModel):
     operator_id: str
     batch_id: str
-    input_mode: str = "upload"  # "upload" | "live"
+    input_mode: str = "upload"  # "upload" | "live" | "ip_webcam"
     customer_ms: str = ""
     transporter_id: str = ""
     courier_partner: str = ""
     challan_no: str = ""
     pickup_date: str = ""
     products: List[ProductItem] = []
+    ip_webcam_url: str = ""
 
 
 @router.post("/start")
