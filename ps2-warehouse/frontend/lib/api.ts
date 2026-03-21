@@ -16,6 +16,8 @@ export interface SessionStartParams {
   challan_no?: string;
   pickup_date?: string;
   products?: ProductItem[];
+  ip_webcam_url?: string;
+  challan_email?: string;
 }
 
 export const API = {

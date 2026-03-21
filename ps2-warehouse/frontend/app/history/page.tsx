@@ -14,6 +14,9 @@ import {
 import { API } from "@/lib/api";
 import StatusBadge from "@/components/StatusBadge";
 import Link from "next/link";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
+import Navbar from "@/components/Navbar";
 
 interface SessionData {
   id: number;
@@ -27,14 +30,40 @@ interface SessionData {
 }
 
 export default function HistoryPage() {
+  const { user } = useAuth();
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    API.getSessions()
-      .then((data) => setSessions(data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    const fetchSessions = async () => {
+      try {
+        console.log("Fetching sessions...");
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/sessions/`);
+        console.log("Response status:", response.status);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log("Sessions data:", data);
+        setSessions(data);
+      } catch (error) {
+        console.error("Error fetching sessions:", error);
+        // Try the test endpoint to debug
+        try {
+          const testResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/test/test-db`);
+          const testData = await testResponse.json();
+          console.log("Database test:", testData);
+        } catch (testError) {
+          console.error("Database test failed:", testError);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchSessions();
   }, []);
 
   const formatDate = (iso: string) => {
@@ -51,44 +80,14 @@ export default function HistoryPage() {
   };
 
   return (
-    <main className="min-h-screen bg-black text-neutral-200 font-sans selection:bg-neutral-800 relative">
+    <ProtectedRoute requiredRole="viewer">
+      <main className="min-h-screen bg-black text-neutral-200 font-sans selection:bg-neutral-800 relative">
       {/* Subtle Technical Background - EXACT MATCH to page.tsx */}
       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none fixed" />
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none fixed" />
 
       {/* Top Navigation Bar */}
-      <header className="fixed top-0 w-full border-b border-neutral-800 bg-black/50 backdrop-blur-md z-50">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-5 h-5 bg-neutral-100 rounded-sm flex items-center justify-center">
-              <Terminal className="w-3 h-3 text-black" />
-            </div>
-            <span className="font-semibold text-sm tracking-wide text-neutral-100">
-              DECODERS
-            </span>
-            <span className="px-2 py-0.5 rounded-full bg-neutral-900 border border-neutral-800 text-[10px] uppercase tracking-widest text-neutral-500 ml-2 hidden sm:inline-block">
-              Production Environment
-            </span>
-          </Link>
-         
-          <div className="flex items-center gap-4">
-            <Link
-              href="/control"
-              className="text-[10px] uppercase tracking-widest font-mono text-neutral-400 hover:text-neutral-200 transition-colors"
-            >
-              Control Panel
-            </Link>
-            <span className="text-neutral-800 hidden sm:inline-block">|</span>
-            <Link
-              href="/"
-              className="flex items-center gap-2 px-4 py-1.5 bg-neutral-100 hover:bg-white text-black font-medium text-xs rounded transition-all duration-200"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              New Session
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Navbar title="Session History" />
 
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-6 pt-32 pb-16 relative z-10">
@@ -230,5 +229,6 @@ export default function HistoryPage() {
         )}
       </div>
     </main>
+    </ProtectedRoute>
   );
 }

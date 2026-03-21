@@ -88,7 +88,7 @@ export default function VideoFeed({
         <div className="flex items-center gap-2.5">
           <MonitorPlay className="w-4 h-4 text-neutral-500" />
           <span className="font-sans text-[10px] font-semibold tracking-widest text-neutral-300 uppercase">
-            Live Telemetry Feed
+            Live Feed
           </span>
         </div>
 

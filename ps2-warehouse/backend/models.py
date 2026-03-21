@@ -24,6 +24,8 @@ class Session(SQLModel, table=True):
     pickup_date: Optional[str] = ""
     # JSON-encoded list of {name: str, qty: int} — supports N products
     products_json: Optional[str] = "[]"
+    # Email field for sending challan
+    challan_email: Optional[str] = ""
 
 
 class DetectionLog(SQLModel, table=True):
