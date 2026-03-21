@@ -1,16 +1,29 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const WS = BASE.replace(/^http/, "ws");
 
+export interface ProductItem {
+  name: string;
+  qty: number;
+}
+
+export interface SessionStartParams {
+  operator_id: string;
+  batch_id: string;
+  input_mode: string;
+  customer_ms?: string;
+  transporter_id?: string;
+  courier_partner?: string;
+  challan_no?: string;
+  pickup_date?: string;
+  products?: ProductItem[];
+}
+
 export const API = {
-  startSession: (operatorId: string, batchId: string, inputMode: string = "upload") =>
+  startSession: (params: SessionStartParams) =>
     fetch(`${BASE}/api/sessions/start`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        operator_id: operatorId,
-        batch_id: batchId,
-        input_mode: inputMode,
-      }),
+      body: JSON.stringify(params),
     }).then((r) => r.json()),
 
   uploadVideo: (sessionId: number, file: File) => {
@@ -27,6 +40,13 @@ export const API = {
 
   stopSession: (id: number) =>
     fetch(`${BASE}/api/sessions/stop/${id}`, { method: "POST" }).then((r) => r.json()),
+
+  takeAction: (id: number, action: "pause" | "resume" | "reset") =>
+    fetch(`${BASE}/api/sessions/action/${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    }).then((r) => r.json()),
 
   getSessions: () =>
     fetch(`${BASE}/api/sessions/`).then((r) => r.json()),

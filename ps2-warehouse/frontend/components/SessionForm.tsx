@@ -2,13 +2,36 @@
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, UploadCloud, Radio, X, FileVideo } from "lucide-react";
-import { API } from "@/lib/api";
+import { Loader2, UploadCloud, Radio, X, FileVideo, Plus, Trash2 } from "lucide-react";
+import { API, ProductItem } from "@/lib/api";
 
 export default function SessionForm() {
   const router = useRouter();
   const [operatorId, setOperatorId] = useState("");
-  const [batchId, setBatchId] = useState("");
+  
+  // Challan Fields
+  const [customerMs, setCustomerMs] = useState("");
+  const [transporterId, setTransporterId] = useState("");
+  const [courierPartner, setCourierPartner] = useState("");
+  const [challanNo, setChallanNo] = useState("");
+  const [pickupDate, setPickupDate] = useState("");
+  const [batchId, setBatchId] = useState(""); // Acts as "Lot No."
+
+  // Dynamic product rows — N items supported
+  const [products, setProducts] = useState<ProductItem[]>([
+    { name: "ABC", qty: 0 },
+    { name: "DEF", qty: 0 },
+  ]);
+  function updateProduct(index: number, field: keyof ProductItem, value: string | number) {
+    setProducts(prev => prev.map((p, i) => i === index ? { ...p, [field]: value } : p));
+  }
+  function addProduct() {
+    setProducts(prev => [...prev, { name: "", qty: 0 }]);
+  }
+  function removeProduct(index: number) {
+    if (products.length > 1) setProducts(prev => prev.filter((_, i) => i !== index));
+  }
+
   const [loading, setLoading] = useState(false);
   const [inputMode, setInputMode] = useState<"upload" | "live">("upload");
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -42,12 +65,22 @@ export default function SessionForm() {
   };
 
   async function handleStart() {
-    if (!operatorId || !batchId) return;
+    if (!operatorId || !batchId || !customerMs || !challanNo) return;
     if (inputMode === "upload" && !videoFile) return;
 
     setLoading(true);
     try {
-      const session = await API.startSession(operatorId, batchId, inputMode);
+      const session = await API.startSession({
+        operator_id: operatorId,
+        batch_id: batchId,
+        input_mode: inputMode,
+        customer_ms: customerMs,
+        transporter_id: transporterId,
+        courier_partner: courierPartner,
+        challan_no: challanNo,
+        pickup_date: pickupDate,
+        products: products.map(p => ({ name: p.name, qty: Number(p.qty) || 0 })),
+      });
       const sessionId = session.session_id;
 
       if (inputMode === "upload" && videoFile) {
@@ -63,7 +96,7 @@ export default function SessionForm() {
 
   const canStart =
     operatorId &&
-    batchId &&
+    batchId && customerMs && challanNo &&
     (inputMode === "live" || (inputMode === "upload" && videoFile));
   // --------------------------------------
 
@@ -99,9 +132,9 @@ export default function SessionForm() {
       </div>
 
       <div className="p-8 space-y-8">
-        {/* Identifiers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
+        {/* Operator Setup Top Row */}
+        <div className="flex items-center gap-4">
+           <div className="flex-1 space-y-2">
             <label htmlFor="operator-id" className="text-[10px] font-semibold text-neutral-500 uppercase tracking-widest">
               Operator ID
             </label>
@@ -112,20 +145,110 @@ export default function SessionForm() {
               value={operatorId}
               onChange={(e) => setOperatorId(e.target.value)}
             />
-          </div>
+           </div>
+        </div>
 
-          <div className="space-y-2">
-            <label htmlFor="batch-id" className="text-[10px] font-semibold text-neutral-500 uppercase tracking-widest">
-              Batch ID
-            </label>
-            <input
-              id="batch-id"
-              className="w-full bg-transparent border-b border-neutral-800 py-2 text-sm text-neutral-200 font-mono placeholder:text-neutral-700 focus:border-neutral-400 focus:outline-none transition-colors"
-              placeholder="BATCH-042"
-              value={batchId}
-              onChange={(e) => setBatchId(e.target.value)}
-            />
-          </div>
+        {/* Challan Form Table (Mimicking User Requested UI) */}
+        <div className="border border-neutral-600 bg-[#1e1e1e] font-sans text-sm text-neutral-200 w-full overflow-hidden">
+          <table className="w-full border-collapse border border-neutral-600">
+            <tbody>
+              {/* Header Row */}
+              <tr className="border-b border-neutral-600">
+                <td colSpan={2} className="border-r border-neutral-600 p-2">Customer Detail</td>
+                <td className="border-r border-neutral-600 p-2">Challan No.</td>
+                <td className="p-0">
+                  <input placeholder="123456789" className="w-full h-full bg-transparent p-2 focus:outline-none text-white focus:bg-white/5" value={challanNo} onChange={e => setChallanNo(e.target.value)} />
+                </td>
+              </tr>
+              <tr className="border-b border-neutral-600">
+                <td className="border-r border-neutral-600 p-2 w-1/4">M/S</td>
+                <td className="border-r border-neutral-600 p-0 w-1/4">
+                  <input placeholder="Enter Client Name" className="w-full h-full bg-transparent p-2 focus:outline-none text-white focus:bg-white/5" value={customerMs} onChange={e => setCustomerMs(e.target.value)} />
+                </td>
+                <td className="border-r border-neutral-600 p-2 w-1/4">Pickup Date</td>
+                <td className="p-0 w-1/4">
+                  <input type="date" className="w-full h-full bg-transparent p-2 focus:outline-none text-white focus:bg-white/5" value={pickupDate} onChange={e => setPickupDate(e.target.value)} />
+                </td>
+              </tr>
+              <tr className="border-b border-neutral-600">
+                <td className="border-r border-neutral-600 p-2">Transporter ID</td>
+                <td className="border-r border-neutral-600 p-0">
+                  <input placeholder="..." className="w-full h-full bg-transparent p-2 focus:outline-none text-white focus:bg-white/5" value={transporterId} onChange={e => setTransporterId(e.target.value)} />
+                </td>
+                <td className="border-r border-neutral-600 p-2">Lot No.</td>
+                <td className="p-0">
+                  <input placeholder="10" className="w-full h-full bg-transparent p-2 focus:outline-none text-white focus:bg-white/5" value={batchId} onChange={e => setBatchId(e.target.value)} />
+                </td>
+              </tr>
+              <tr className="border-b border-neutral-600 border-b-[8px]">
+                <td className="border-r border-neutral-600 p-2">Courier Partner</td>
+                <td className="border-r border-neutral-600 p-0">
+                   <input placeholder="..." className="w-full h-full bg-transparent p-2 focus:outline-none text-white focus:bg-white/5" value={courierPartner} onChange={e => setCourierPartner(e.target.value)} />
+                </td>
+                <td className="border-r border-neutral-600 p-2">No. of Boxes</td>
+                <td className="p-2 text-neutral-500 italic">
+                  [ Auto-Detected by System ]
+                </td>
+              </tr>
+              {/* Product Rows - Dynamic */}
+              <tr className="border-b border-neutral-600">
+                <td className="border-r border-neutral-600 p-2 font-semibold">Sr. No.</td>
+                <td colSpan={2} className="border-r border-neutral-600 p-2 font-semibold">Name of Product</td>
+                <td className="p-2 font-semibold">Qty</td>
+              </tr>
+              {products.map((product, index) => (
+                <tr key={index} className="border-b border-neutral-600 group">
+                  <td className="border-r border-neutral-600 p-2 text-neutral-400">{index + 1}.</td>
+                  <td colSpan={2} className="border-r border-neutral-600 p-0">
+                    <div className="flex items-center">
+                      <input
+                        className="flex-1 bg-transparent p-2 focus:outline-none text-white focus:bg-white/5"
+                        placeholder="Product name"
+                        value={product.name}
+                        onChange={e => updateProduct(index, "name", e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeProduct(index)}
+                        className="px-2 opacity-0 group-hover:opacity-100 transition-opacity text-neutral-600 hover:text-red-400"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                  <td className="p-0">
+                    <input
+                      type="number"
+                      placeholder="0"
+                      className="w-full bg-transparent p-2 focus:outline-none text-white focus:bg-white/5"
+                      value={product.qty || ""}
+                      onChange={e => updateProduct(index, "qty", Number(e.target.value) || 0)}
+                    />
+                  </td>
+                </tr>
+              ))}
+              {/* Add Product Row */}
+              <tr className="border-b border-neutral-600">
+                <td colSpan={4} className="p-1">
+                  <button
+                    type="button"
+                    onClick={addProduct}
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-mono uppercase tracking-widest text-neutral-500 hover:text-neutral-300 hover:bg-white/5 transition-all"
+                  >
+                    <Plus className="w-3 h-3" /> Add Product
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={3} className="border-r border-neutral-600 p-2 text-right font-semibold">
+                  Total
+                </td>
+                <td className="p-2 font-mono text-emerald-400">
+                  {products.reduce((sum, p) => sum + (Number(p.qty) || 0), 0)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         {/* Dynamic Source Input Area */}

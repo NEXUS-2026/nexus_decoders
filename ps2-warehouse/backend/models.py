@@ -16,6 +16,15 @@ class Session(SQLModel, table=True):
     input_mode: str = "upload"  # "upload" | "live"
     uploaded_video_path: Optional[str] = None
 
+    # Challan Fields
+    customer_ms: Optional[str] = ""
+    transporter_id: Optional[str] = ""
+    courier_partner: Optional[str] = ""
+    challan_no: Optional[str] = ""
+    pickup_date: Optional[str] = ""
+    # JSON-encoded list of {name: str, qty: int} — supports N products
+    products_json: Optional[str] = "[]"
+
 
 class DetectionLog(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

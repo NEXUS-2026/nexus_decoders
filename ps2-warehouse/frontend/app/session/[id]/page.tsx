@@ -13,7 +13,10 @@ import {
   Database,
   Clock,
   Activity,
-  ArrowRight
+  ArrowRight,
+  Pause,
+  Play,
+  RotateCcw
 } from "lucide-react";
 import VideoFeed from "@/components/VideoFeed";
 import CountDisplay from "@/components/CountDisplay";
@@ -47,6 +50,7 @@ export default function SessionPage() {
   const [conf, setConf] = useState(0.45);
   const [stopped, setStopped] = useState(false);
   const [stopping, setStopping] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [result, setResult] = useState<SessionResult | null>(null);
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -131,6 +135,29 @@ export default function SessionPage() {
     setStopping(false);
   }
 
+  async function togglePause() {
+    const nextAction = paused ? "resume" : "pause";
+    try {
+      await API.takeAction(sessionId, nextAction);
+      setPaused(p => !p);
+    } catch (err) {
+      console.error("Failed to toggle pause:", err);
+    }
+  }
+
+  async function handleReset() {
+    try {
+      await API.takeAction(sessionId, "reset");
+      setCount(0);
+      setVisible(0);
+      if (paused) {
+        setPaused(false); 
+      }
+    } catch (err) {
+      console.error("Failed to reset:", err);
+    }
+  }
+
   const isLive = sessionInfo?.input_mode === "live";
   // --------------------------------------
 
@@ -173,23 +200,41 @@ export default function SessionPage() {
             </div>
           )}
 
-          {/* Right: Actions */}
+          {/* Right: Actions (Desktop) */}
           <div className="flex items-center gap-4">
-            {!stopped && isLive && (
+            {!stopped && (
+              <div className="hidden sm:flex items-center gap-2">
+                 <button
+                   onClick={togglePause}
+                   className="flex items-center gap-2 bg-neutral-800/50 hover:bg-neutral-700/50 text-neutral-300 text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 rounded transition-all"
+                 >
+                   {paused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+                   {paused ? 'RESUME' : 'PAUSE'}
+                 </button>
+                 <button
+                   onClick={handleReset}
+                   className="flex items-center gap-2 bg-neutral-800/50 hover:bg-neutral-700/50 text-neutral-300 text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 rounded transition-all"
+                 >
+                   <RotateCcw className="w-3 h-3" />
+                   RESET
+                 </button>
+              </div>
+            )}
+            {!stopped && (
               <button
                 onClick={handleStop}
                 disabled={stopping}
-                className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-[10px] font-mono uppercase tracking-widest px-4 py-2 rounded transition-all disabled:opacity-50"
+                className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 rounded transition-all disabled:opacity-50"
               >
                 {stopping ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    TERMINATING...
+                    <span className="hidden sm:inline">TERMINATING...</span>
                   </>
                 ) : (
                   <>
                     <Square className="w-3 h-3 fill-current" />
-                    TERMINATE UPLINK
+                    <span className="hidden sm:inline">END RUN</span>
                   </>
                 )}
               </button>
@@ -213,11 +258,37 @@ export default function SessionPage() {
           {/* Left Column (Video & Inputs) - 7 cols */}
           <div className="lg:col-span-7 space-y-6 flex flex-col">
             {!stopped && (
-              <VideoFeed
-                sessionId={sessionId}
-                onCountUpdate={handleCountUpdate}
-                onVisibleUpdate={handleVisibleUpdate}
-              />
+              <div className="space-y-4">
+                <VideoFeed
+                  sessionId={sessionId}
+                  onCountUpdate={handleCountUpdate}
+                  onVisibleUpdate={handleVisibleUpdate}
+                />
+                {/* Mobile/Tablet Controls */}
+                <div className="flex sm:hidden items-center justify-between gap-2 bg-[#0A0A0A] border border-neutral-800 p-2 rounded-xl">
+                    <button
+                      onClick={togglePause}
+                      className="flex-1 flex justify-center items-center gap-1.5 bg-neutral-800/50 active:bg-neutral-700/50 text-neutral-300 text-[10px] font-mono uppercase px-2 py-2 rounded"
+                    >
+                      {paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                      {paused ? 'RESUME' : 'PAUSE'}
+                    </button>
+                    <button
+                      onClick={handleReset}
+                      className="flex-1 flex justify-center items-center gap-1.5 bg-neutral-800/50 active:bg-neutral-700/50 text-neutral-300 text-[10px] font-mono uppercase px-2 py-2 rounded"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      RESET
+                    </button>
+                    <button
+                      onClick={handleStop}
+                      className="flex-1 flex justify-center items-center gap-1.5 bg-red-500/10 active:bg-red-500/20 text-red-400 border border-red-500/20 text-[10px] font-mono uppercase px-2 py-2 rounded"
+                    >
+                      <Square className="w-3.5 h-3.5 fill-current" />
+                      STOP
+                    </button>
+                </div>
+              </div>
             )}
 
             {!stopped && isLive && (
@@ -236,29 +307,29 @@ export default function SessionPage() {
 
             {/* Session Info Box */}
             {!stopped ? (
-              <div className="bg-[#0A0A0A] border border-neutral-800 rounded-xl p-6">
-                <div className="grid grid-cols-3 gap-4 divide-x divide-neutral-800">
-                  <div className="text-center px-2">
-                    <p className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest mb-2 flex items-center justify-center gap-1.5">
-                      <User className="w-3 h-3" /> Operator
+              <div className="bg-[#0A0A0A] border border-neutral-800 rounded-xl p-4 sm:p-6 overflow-hidden">
+                <div className="flex sm:grid sm:grid-cols-3 gap-3 sm:gap-4 flex-wrap sm:divide-x divide-neutral-800">
+                  <div className="text-center px-2 flex-1 min-w-[30%]">
+                    <p className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest mb-1 sm:mb-2 flex items-center justify-center gap-1.5">
+                      <User className="w-3 h-3" /> <span className="hidden sm:inline">Operator</span>
                     </p>
-                    <p className="font-mono font-medium text-neutral-200 text-sm truncate">
+                    <p className="font-mono font-medium text-neutral-200 text-xs sm:text-sm truncate">
                       {sessionInfo?.operator_id || "—"}
                     </p>
                   </div>
-                  <div className="text-center px-2">
-                    <p className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest mb-2 flex items-center justify-center gap-1.5">
-                      <Database className="w-3 h-3" /> Batch
+                  <div className="text-center px-2 flex-1 min-w-[30%] sm:border-l border-neutral-800">
+                    <p className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest mb-1 sm:mb-2 flex items-center justify-center gap-1.5">
+                      <Database className="w-3 h-3" /> <span className="hidden sm:inline">Batch</span>
                     </p>
-                    <p className="font-mono font-medium text-neutral-200 text-sm truncate bg-neutral-900 border border-neutral-800 rounded px-1 py-0.5 inline-block">
+                    <p className="font-mono font-medium text-neutral-200 text-xs sm:text-sm truncate bg-neutral-900 border border-neutral-800 rounded px-1 py-0.5 inline-block">
                       {sessionInfo?.batch_id || "—"}
                     </p>
                   </div>
-                  <div className="text-center px-2">
-                    <p className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest mb-2 flex items-center justify-center gap-1.5">
-                      <Clock className="w-3 h-3" /> Elapsed
+                  <div className="text-center px-2 flex-1 min-w-[30%] sm:border-l border-neutral-800">
+                    <p className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest mb-1 sm:mb-2 flex items-center justify-center gap-1.5">
+                      <Clock className="w-3 h-3" /> <span className="hidden sm:inline">Elapsed</span>
                     </p>
-                    <p className="font-mono font-medium text-blue-400 text-sm">
+                    <p className="font-mono font-medium text-blue-400 text-xs sm:text-sm">
                       {formatElapsed(elapsedSeconds)}
                     </p>
                   </div>

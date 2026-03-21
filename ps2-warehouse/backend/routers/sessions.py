@@ -8,6 +8,19 @@ from services.detection_runner import run_detection_on_video, detection_tasks
 from routers.settings import load_settings
 from datetime import datetime
 from pydantic import BaseModel
+from typing import List
+from pathlib import Path
+import shutil
+import json
+from sqlmodel import Session as DBSession, select
+from database import engine, get_session
+from models import Session, DetectionLog
+from services.video_recorder import start_recording, stop_recording
+from services.challan_gen import generate_challan
+from services.detection_runner import run_detection_on_video, detection_tasks
+from routers.settings import load_settings
+from datetime import datetime
+from pydantic import BaseModel
 from pathlib import Path
 import shutil
 
@@ -17,10 +30,22 @@ UPLOADS_DIR = Path(__file__).parent.parent.parent / "storage" / "uploads"
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 
+class ProductItem(BaseModel):
+    name: str
+    qty: int
+
+
 class StartSessionRequest(BaseModel):
     operator_id: str
     batch_id: str
-    input_mode: str = "upload"  # "upload" | "live"
+    input_mode: str = "upload"  # "upload" | "live" | "ip_webcam"
+    customer_ms: str = ""
+    transporter_id: str = ""
+    courier_partner: str = ""
+    challan_no: str = ""
+    pickup_date: str = ""
+    products: List[ProductItem] = []
+    ip_webcam_url: str = ""
 
 
 @router.post("/start")
@@ -29,6 +54,12 @@ def start_session(body: StartSessionRequest, db: DBSession = Depends(get_session
         operator_id=body.operator_id,
         batch_id=body.batch_id,
         input_mode=body.input_mode,
+        customer_ms=body.customer_ms,
+        transporter_id=body.transporter_id,
+        courier_partner=body.courier_partner,
+        challan_no=body.challan_no,
+        pickup_date=body.pickup_date,
+        products_json=json.dumps([p.dict() for p in body.products]),
     )
     db.add(session)
     db.commit()
@@ -99,6 +130,21 @@ def get_detection_status(session_id: int):
         return {"session_id": session_id, "status": "unknown"}
     return {"session_id": session_id, **task}
 
+
+class SessionAction(BaseModel):
+    action: str
+
+@router.post("/action/{session_id}")
+def session_action(session_id: int, body: SessionAction):
+    from services.detection_runner import detection_tasks
+    from services.live_stream_runner import live_stream_sessions
+    internal_action = "run" if body.action == "resume" else body.action
+    
+    if session_id in detection_tasks:
+        detection_tasks[session_id]["action"] = internal_action
+    elif session_id in live_stream_sessions:
+        live_stream_sessions[session_id]["action"] = internal_action
+    return {"status": "ok", "action": body.action}
 
 @router.post("/stop/{session_id}")
 def stop_session(session_id: int, db: DBSession = Depends(get_session)):
