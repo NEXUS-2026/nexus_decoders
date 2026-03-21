@@ -11,9 +11,7 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
-# Add detection_engine to path for BoxTracker
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "detection_engine"))
-from tracker import BoxTracker
+from services.tracker import BoxTracker
 
 from sqlmodel import Session as DBSession
 from database import engine as db_engine
@@ -66,6 +64,21 @@ def run_detection_on_video(
             visible = 0
 
             while cap.isOpened():
+                action = detection_tasks[session_id].get("action", "run")
+                if action == "stop":
+                    break
+                elif action == "pause":
+                    time.sleep(0.5)
+                    continue
+                elif action == "reset":
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    tracker.reset()
+                    frame_idx = 0
+                    count = 0
+                    visible = 0
+                    detection_tasks[session_id]["action"] = "run"
+                    continue
+
                 ret, frame = cap.read()
                 if not ret:
                     break
@@ -103,15 +116,16 @@ def run_detection_on_video(
 
                     # Forward to WebSocket clients via detection router
                     try:
-                        from routers.detection import frontend_clients, current_session_id
+                        from routers.detection import frontend_clients
                         if session_id in frontend_clients:
-                            # We need to send via the event loop
                             loop = _get_or_create_event_loop()
                             for client in list(frontend_clients.get(session_id, [])):
                                 try:
-                                    asyncio.run_coroutine_threadsafe(
+                                    future = asyncio.run_coroutine_threadsafe(
                                         client.send_bytes(frame_bytes), loop
                                     )
+                                    # Throttle the loop by waiting for send to push to socket
+                                    future.result(timeout=0.05)
                                 except Exception:
                                     pass
 
@@ -126,7 +140,7 @@ def run_detection_on_video(
                                 try:
                                     asyncio.run_coroutine_threadsafe(
                                         client.send_text(count_json), loop
-                                    )
+                                    ).result(timeout=0.05)
                                 except Exception:
                                     pass
                     except Exception:
