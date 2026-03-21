@@ -5,6 +5,7 @@ from models import Session, DetectionLog
 from services.video_recorder import start_recording, stop_recording
 from services.challan_gen import generate_challan
 from services.detection_runner import run_detection_on_video, detection_tasks
+from routers.settings import load_settings
 from datetime import datetime
 from pydantic import BaseModel
 from pathlib import Path
@@ -76,10 +77,11 @@ async def upload_video(
     db.commit()
 
     # Start background detection
+    current_settings = load_settings()
     run_detection_on_video(
         session_id=session_id,
         video_path=str(upload_path),
-        conf=0.45,
+        conf=current_settings.get("confidence_threshold", 0.45),
     )
 
     return {

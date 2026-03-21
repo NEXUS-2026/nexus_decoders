@@ -3,12 +3,17 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  Package,
   Square,
   Loader2,
   CheckCircle2,
   FileDown,
   Video,
+  Terminal,
+  User,
+  Database,
+  Clock,
+  Activity,
+  ArrowRight
 } from "lucide-react";
 import VideoFeed from "@/components/VideoFeed";
 import CountDisplay from "@/components/CountDisplay";
@@ -46,7 +51,7 @@ export default function SessionPage() {
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-  // Fetch session info
+  // --- LOGIC REMAINS UNCHANGED ---
   useEffect(() => {
     API.getSession(sessionId)
       .then((data) => {
@@ -64,7 +69,6 @@ export default function SessionPage() {
       .catch(console.error);
   }, [sessionId]);
 
-  // Poll detection status for upload mode
   useEffect(() => {
     if (!sessionInfo || sessionInfo.input_mode !== "upload" || stopped) return;
 
@@ -76,7 +80,6 @@ export default function SessionPage() {
 
         if (status.status === "completed") {
           clearInterval(interval);
-          // Fetch final session data
           const session = await API.getSession(sessionId);
           setStopped(true);
           setResult({
@@ -95,7 +98,6 @@ export default function SessionPage() {
     return () => clearInterval(interval);
   }, [sessionId, sessionInfo, stopped]);
 
-  // Elapsed timer
   useEffect(() => {
     if (stopped) return;
     const interval = setInterval(() => {
@@ -130,181 +132,195 @@ export default function SessionPage() {
   }
 
   const isLive = sessionInfo?.input_mode === "live";
+  // --------------------------------------
 
   return (
-    <div className="min-h-screen bg-bg">
-      {/* Sticky Navbar */}
-      <nav className="sticky top-0 z-50 bg-bg/80 backdrop-blur border-b border-border">
+    <main className="min-h-screen bg-black text-neutral-200 font-sans selection:bg-neutral-800 relative flex flex-col">
+      {/* Background Grid */}
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none fixed" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none fixed" />
+
+      {/* System HUD Navbar */}
+      <nav className="fixed top-0 w-full border-b border-neutral-800 bg-black/50 backdrop-blur-md z-50">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          {/* Left */}
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2">
-              <Package className="w-5 h-5 text-accent" />
-              <span className="font-display font-bold text-sm tracking-wider text-text-primary">
+         
+          {/* Left: Branding & ID */}
+          <div className="flex items-center gap-4">
+            <Link href="/" className="flex items-center gap-3">
+              <div className="w-5 h-5 bg-neutral-100 rounded-sm flex items-center justify-center">
+                <Terminal className="w-3 h-3 text-black" />
+              </div>
+              <span className="font-semibold text-sm tracking-wide text-neutral-100 hidden sm:inline-block">
                 DECODERS
               </span>
             </Link>
-            <span className="bg-surface border border-border rounded-full px-3 py-1 text-xs font-display text-text-secondary">
-              Session #{sessionId}
+            <div className="h-4 w-px bg-neutral-800" />
+            <span className="font-mono text-[10px] uppercase tracking-widest text-neutral-400 bg-neutral-900 border border-neutral-800 px-2 py-1 rounded">
+              SYS.ID <span className="text-white">#{sessionId}</span>
             </span>
           </div>
 
-          {/* Center — Live indicator */}
+          {/* Center: Status Indicator */}
           {!stopped && (
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-success animate-pulse inline-block" />
-              <span className="text-success text-xs font-semibold tracking-widest uppercase">
-                {sessionInfo?.input_mode === "upload" ? "PROCESSING" : "LIVE"}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${sessionInfo?.input_mode === "upload" ? "bg-amber-400" : "bg-emerald-400"}`} />
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${sessionInfo?.input_mode === "upload" ? "bg-amber-500" : "bg-emerald-500"}`} />
+              </span>
+              <span className={`text-[10px] font-mono tracking-widest uppercase ${sessionInfo?.input_mode === "upload" ? "text-amber-500" : "text-emerald-500"}`}>
+                {sessionInfo?.input_mode === "upload" ? "ANALYZING PAYLOAD" : "LIVE TELEMETRY"}
               </span>
             </div>
           )}
 
-          {/* Right */}
-          {!stopped && isLive && (
-            <button
-              onClick={handleStop}
-              disabled={stopping}
-              className="bg-red-600/90 hover:bg-red-500 text-white font-display font-semibold rounded-xl px-6 py-2 transition-all active:scale-95 flex items-center gap-2 text-sm disabled:opacity-50"
-            >
-              {stopping ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Stopping...
-                </>
-              ) : (
-                <>
-                  <Square className="w-3.5 h-3.5" />
-                  Stop Session
-                </>
-              )}
-            </button>
-          )}
-          {stopped && (
-            <Link
-              href="/history"
-              className="text-sm text-muted hover:text-text-primary transition-colors"
-            >
-              View History →
-            </Link>
-          )}
+          {/* Right: Actions */}
+          <div className="flex items-center gap-4">
+            {!stopped && isLive && (
+              <button
+                onClick={handleStop}
+                disabled={stopping}
+                className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-[10px] font-mono uppercase tracking-widest px-4 py-2 rounded transition-all disabled:opacity-50"
+              >
+                {stopping ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    TERMINATING...
+                  </>
+                ) : (
+                  <>
+                    <Square className="w-3 h-3 fill-current" />
+                    TERMINATE UPLINK
+                  </>
+                )}
+              </button>
+            )}
+            {stopped && (
+              <Link
+                href="/history"
+                className="text-[10px] font-mono uppercase tracking-widest text-neutral-400 hover:text-white transition-colors flex items-center gap-2"
+              >
+                RETURN TO LOGS <ArrowRight className="w-3 h-3" />
+              </Link>
+            )}
+          </div>
         </div>
       </nav>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Left Column */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Video Feed */}
-          {!stopped && (
-            <VideoFeed
-              sessionId={sessionId}
-              onCountUpdate={handleCountUpdate}
-              onVisibleUpdate={handleVisibleUpdate}
-            />
-          )}
+      {/* Main Layout Grid */}
+      <div className="max-w-7xl w-full mx-auto p-6 pt-24 pb-16 flex-1 flex flex-col relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+         
+          {/* Left Column (Video & Inputs) - 7 cols */}
+          <div className="lg:col-span-7 space-y-6 flex flex-col">
+            {!stopped && (
+              <VideoFeed
+                sessionId={sessionId}
+                onCountUpdate={handleCountUpdate}
+                onVisibleUpdate={handleVisibleUpdate}
+              />
+            )}
 
-          {/* Confidence Slider */}
-          {!stopped && isLive && (
-            <ConfidenceSlider value={conf} onChange={setConf} />
-          )}
+            {!stopped && isLive && (
+              <ConfidenceSlider value={conf} onChange={setConf} />
+            )}
 
-          {/* Processing progress for upload mode */}
-          {!stopped && sessionInfo?.input_mode === "upload" && (
-            <UploadProgress sessionId={sessionId} />
-          )}
-        </div>
+            {!stopped && sessionInfo?.input_mode === "upload" && (
+              <UploadProgress sessionId={sessionId} />
+            )}
+          </div>
 
-        {/* Right Column */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Count Display */}
-          <CountDisplay count={count} visible={visible} active={!stopped} />
+          {/* Right Column (Telemetry & Logs) - 5 cols */}
+          <div className="lg:col-span-5 space-y-6">
+           
+            <CountDisplay count={count} visible={visible} active={!stopped} />
 
-          {/* Session Info or Complete Panel */}
-          {!stopped ? (
-            <div className="bg-panel border border-border rounded-2xl p-5">
-              <div className="grid grid-cols-3 gap-4 divide-x divide-border">
-                <div className="text-center">
-                  <p className="text-muted text-xs uppercase tracking-wide">
-                    Operator
-                  </p>
-                  <p className="font-display font-semibold text-text-primary text-sm mt-1">
-                    {sessionInfo?.operator_id || "—"}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-muted text-xs uppercase tracking-wide">
-                    Batch
-                  </p>
-                  <p className="font-display font-semibold text-text-primary text-sm mt-1">
-                    {sessionInfo?.batch_id || "—"}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-muted text-xs uppercase tracking-wide">
-                    Elapsed
-                  </p>
-                  <p className="font-display font-semibold text-text-primary text-sm mt-1 font-mono">
-                    {formatElapsed(elapsedSeconds)}
-                  </p>
+            {/* Session Info Box */}
+            {!stopped ? (
+              <div className="bg-[#0A0A0A] border border-neutral-800 rounded-xl p-6">
+                <div className="grid grid-cols-3 gap-4 divide-x divide-neutral-800">
+                  <div className="text-center px-2">
+                    <p className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest mb-2 flex items-center justify-center gap-1.5">
+                      <User className="w-3 h-3" /> Operator
+                    </p>
+                    <p className="font-mono font-medium text-neutral-200 text-sm truncate">
+                      {sessionInfo?.operator_id || "—"}
+                    </p>
+                  </div>
+                  <div className="text-center px-2">
+                    <p className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest mb-2 flex items-center justify-center gap-1.5">
+                      <Database className="w-3 h-3" /> Batch
+                    </p>
+                    <p className="font-mono font-medium text-neutral-200 text-sm truncate bg-neutral-900 border border-neutral-800 rounded px-1 py-0.5 inline-block">
+                      {sessionInfo?.batch_id || "—"}
+                    </p>
+                  </div>
+                  <div className="text-center px-2">
+                    <p className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest mb-2 flex items-center justify-center gap-1.5">
+                      <Clock className="w-3 h-3" /> Elapsed
+                    </p>
+                    <p className="font-mono font-medium text-blue-400 text-sm">
+                      {formatElapsed(elapsedSeconds)}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            result && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="bg-panel border border-success/30 rounded-2xl p-6"
-              >
-                <div className="flex items-center gap-3 mb-5">
-                  <CheckCircle2 className="w-8 h-8 text-success" />
-                  <h2 className="font-display font-bold text-xl text-text-primary">
-                    SESSION COMPLETE
-                  </h2>
-                </div>
+            ) : (
+              /* Session Complete Panel */
+              result && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4 }}
+                  className="bg-[#0A0A0A] border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.05)] rounded-xl p-8 flex flex-col relative overflow-hidden"
+                >
+                  <div className="absolute top-0 inset-x-0 h-1 bg-emerald-500" />
+                 
+                  <div className="flex items-center gap-3 mb-8">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                    <h2 className="font-mono text-sm tracking-widest uppercase text-emerald-500 font-semibold">
+                      Pipeline Terminated Successfully
+                    </h2>
+                  </div>
 
-                <p className="font-display text-5xl font-black text-success text-center mb-6">
-                  {result.final_box_count}
-                </p>
-                <p className="text-muted text-sm text-center mb-6">
-                  boxes counted
-                </p>
+                  <div className="text-center mb-10 relative">
+                     <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+                     <p className="font-mono text-7xl font-medium text-white tracking-tighter tabular-nums drop-shadow-[0_0_15px_rgba(16,185,129,0.3)] relative z-10">
+                      {result.final_box_count}
+                     </p>
+                     <p className="text-[10px] font-mono text-neutral-500 tracking-widest uppercase mt-4">
+                      Total Units Indexed
+                     </p>
+                  </div>
 
-                <div className="space-y-3">
-                  <a
-                    href={API.challanUrl(sessionId)}
-                    target="_blank"
-                    className="w-full flex items-center justify-center gap-2 bg-accent text-bg font-display font-bold rounded-xl py-3.5 hover:bg-sky-300 transition-all active:scale-95"
-                  >
-                    <FileDown className="w-4 h-4" />
-                    Download Challan PDF
-                  </a>
-                  <a
-                    href={API.videoUrl(sessionId)}
-                    target="_blank"
-                    className="w-full flex items-center justify-center gap-2 border border-border text-text-primary hover:bg-surface font-display font-semibold rounded-xl py-3.5 transition-all"
-                  >
-                    <Video className="w-4 h-4" />
-                    Download Session Video
-                  </a>
-                </div>
-
-                <video
-                  src={API.videoUrl(sessionId)}
-                  controls
-                  className="w-full rounded-xl mt-5 border border-border"
-                />
-              </motion.div>
-            )
-          )}
+                  <div className="grid grid-cols-2 gap-3 mt-auto">
+                    <a
+                      href={API.challanUrl(sessionId)}
+                      target="_blank"
+                      className="flex items-center justify-center gap-2 bg-[#050505] border border-neutral-800 hover:border-neutral-600 text-neutral-300 font-mono text-[10px] uppercase tracking-widest rounded-lg py-3 transition-colors group"
+                    >
+                      <FileDown className="w-4 h-4 text-neutral-500 group-hover:text-white transition-colors" />
+                      Manifest
+                    </a>
+                    <a
+                      href={API.videoUrl(sessionId)}
+                      target="_blank"
+                      className="flex items-center justify-center gap-2 bg-[#050505] border border-neutral-800 hover:border-neutral-600 text-neutral-300 font-mono text-[10px] uppercase tracking-widest rounded-lg py-3 transition-colors group"
+                    >
+                      <Video className="w-4 h-4 text-neutral-500 group-hover:text-white transition-colors" />
+                      Playback
+                    </a>
+                  </div>
+                </motion.div>
+              )
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
-/* Upload Progress Component */
+/* Updated Upload Progress Component */
 function UploadProgress({ sessionId }: { sessionId: number }) {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("processing");
@@ -326,29 +342,38 @@ function UploadProgress({ sessionId }: { sessionId: number }) {
   }, [sessionId]);
 
   return (
-    <div className="bg-panel border border-border rounded-2xl p-5">
-      <div className="flex items-center justify-between mb-3">
-        <span className="font-display text-xs tracking-widest text-muted uppercase">
-          Detection Progress
-        </span>
-        <span className="text-xs text-accent font-display font-bold">
-          {progress}%
+    <div className="bg-[#0A0A0A] border border-neutral-800 rounded-xl p-6 relative overflow-hidden">
+      <div className="flex items-center justify-between mb-4 relative z-10">
+        <div className="flex items-center gap-2">
+          <Activity className="w-4 h-4 text-blue-500 animate-pulse" />
+          <span className="font-mono text-[10px] tracking-widest text-neutral-400 uppercase">
+            Inference Pipeline Status
+          </span>
+        </div>
+        <span className="text-xs font-mono text-blue-400 tabular-nums">
+          {progress.toFixed(0)}%
         </span>
       </div>
-      <div className="w-full bg-surface rounded-full h-2 overflow-hidden">
+     
+      <div className="w-full bg-neutral-900 rounded-full h-1.5 overflow-hidden mb-3 relative z-10">
         <div
-          className="bg-accent h-full rounded-full transition-all duration-300"
+          className="bg-blue-500 h-full rounded-full transition-all duration-300 relative"
           style={{ width: `${progress}%` }}
-        />
+        >
+          {/* Shine effect on progress bar */}
+          <div className="absolute top-0 right-0 bottom-0 w-10 bg-gradient-to-r from-transparent to-white/30" />
+        </div>
       </div>
-      <p className="text-xs text-muted mt-2">
+     
+      <p className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest relative z-10">
+        <span className="text-blue-500 mr-2">❯</span>
         {status === "running"
-          ? "Analyzing video frames..."
+          ? "Processing tensor graph..."
           : status === "completed"
-          ? "Detection complete!"
+          ? "Extraction complete. Terminating."
           : status === "error"
-          ? "An error occurred"
-          : "Initializing..."}
+          ? "Pipeline encountered an error."
+          : "Initializing matrices..."}
       </p>
     </div>
   );

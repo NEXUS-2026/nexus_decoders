@@ -1,0 +1,98 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Environments
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- Frontend (Node.js / React / Next.js) ---
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/dist/
+frontend/.vercel/
+frontend/.turbo/
+frontend/coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Backend & Detection Engine (Python / FastAPI) ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing and Coverage (Python)
+.cache
+.pytest_cache/
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# --- Storage / Uploads ---
+# Ignore everything in the storage directories, except .gitkeep files
+# storage/videos/*
+# !storage/videos/.gitkeep
+
+# storage/challans/*
+# !storage/challans/.gitkeep
+
+# storage/uploads/*
+# !storage/uploads/.gitkeep
+
+# Other media/storage folders
+# storage/temp/
+# storage/logs/
+
+# Optional: ignore Jupyter notebooks if used for detection engine experimentation
+.ipynb_checkpoints
+*.ipynb

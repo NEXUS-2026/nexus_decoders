@@ -37,4 +37,12 @@ export const API = {
   challanUrl: (id: number) => `${BASE}/api/files/challan/${id}`,
   videoUrl: (id: number) => `${BASE}/api/files/video/${id}`,
   feedWsUrl: (id: number) => `${WS}/ws/feed/${id}`,
+
+  getSettings: () => fetch(`${BASE}/api/settings/`).then((r) => r.json()),
+  updateSettings: (confidence_threshold: number) =>
+    fetch(`${BASE}/api/settings/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confidence_threshold }),
+    }).then((r) => r.json()),
 };

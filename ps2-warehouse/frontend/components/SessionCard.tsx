@@ -1,6 +1,7 @@
 "use client";
 import StatusBadge from "./StatusBadge";
 import { API } from "@/lib/api";
+import { FileDown, Play, User, Box, Calendar, Clock } from "lucide-react";
 
 interface SessionData {
   id: number;
@@ -20,49 +21,72 @@ export default function SessionCard({ session }: Props) {
   const startDate = new Date(session.started_at);
 
   return (
-    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-5 hover:bg-white/8 transition-all duration-200 group">
-      <div className="flex items-start justify-between mb-4">
+    <div className="bg-[#0A0A0A] border border-neutral-800 rounded-lg p-6 hover:border-neutral-700 transition-colors duration-200 flex flex-col h-full group">
+     
+      {/* Header Area */}
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <p className="text-sm text-gray-400">Session #{session.id}</p>
-          <p className="text-lg font-bold text-white">{session.batch_id}</p>
+          <p className="text-[10px] text-neutral-500 font-mono uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 bg-neutral-700 rounded-sm inline-block" />
+            SYS.ID <span className="text-neutral-400">#{session.id}</span>
+          </p>
+          <p className="text-xs font-mono font-medium text-neutral-300 bg-neutral-900 border border-neutral-800 rounded px-2 py-1 inline-block">
+            {session.batch_id}
+          </p>
         </div>
         <StatusBadge status={session.status} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      {/* Telemetry Data Grid */}
+      <div className="grid grid-cols-2 gap-y-5 gap-x-4 mb-6 flex-1">
         <div>
-          <p className="text-[11px] text-gray-500 uppercase tracking-wider">Operator</p>
-          <p className="text-sm text-gray-200 font-medium">{session.operator_id}</p>
+          <p className="text-[10px] text-neutral-600 font-mono uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+            <User className="w-3 h-3" /> Operator
+          </p>
+          <p className="text-xs text-neutral-200 font-medium">{session.operator_id}</p>
         </div>
         <div>
-          <p className="text-[11px] text-gray-500 uppercase tracking-wider">Box Count</p>
-          <p className="text-sm text-green-400 font-bold">{session.final_box_count}</p>
+          <p className="text-[10px] text-neutral-600 font-mono uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+            <Box className="w-3 h-3" /> Payload
+          </p>
+          <p className="text-xs font-mono text-neutral-200 font-medium">
+            {session.final_box_count} <span className="text-neutral-600 text-[10px]">UNITS</span>
+          </p>
         </div>
         <div>
-          <p className="text-[11px] text-gray-500 uppercase tracking-wider">Date</p>
-          <p className="text-sm text-gray-200">{startDate.toLocaleDateString()}</p>
+          <p className="text-[10px] text-neutral-600 font-mono uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+            <Calendar className="w-3 h-3" /> Date
+          </p>
+          <p className="text-xs font-mono text-neutral-400">
+            {startDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+          </p>
         </div>
         <div>
-          <p className="text-[11px] text-gray-500 uppercase tracking-wider">Time</p>
-          <p className="text-sm text-gray-200">{startDate.toLocaleTimeString()}</p>
+          <p className="text-[10px] text-neutral-600 font-mono uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+            <Clock className="w-3 h-3" /> Time
+          </p>
+          <p className="text-xs font-mono text-neutral-400">
+            {startDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+          </p>
         </div>
       </div>
 
+      {/* Action Buttons (Appears only when completed) */}
       {session.status === "completed" && (
-        <div className="flex gap-2 pt-3 border-t border-white/5">
+        <div className="flex gap-2 pt-4 border-t border-neutral-800 mt-auto">
           <a
             href={API.challanUrl(session.id)}
             target="_blank"
-            className="flex-1 text-center text-xs font-semibold py-2 rounded-lg bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/20 transition-all"
+            className="flex-1 flex items-center justify-center gap-2 py-2 rounded border border-neutral-800 bg-[#050505] text-[10px] font-mono tracking-widest uppercase text-neutral-400 hover:text-neutral-200 hover:border-neutral-600 transition-all group/btn"
           >
-            📄 Challan
+            <FileDown className="w-3.5 h-3.5 group-hover/btn:-translate-y-0.5 transition-transform" /> Manifest
           </a>
           <a
             href={API.videoUrl(session.id)}
             target="_blank"
-            className="flex-1 text-center text-xs font-semibold py-2 rounded-lg bg-purple-500/15 text-purple-400 hover:bg-purple-500/25 border border-purple-500/20 transition-all"
+            className="flex-1 flex items-center justify-center gap-2 py-2 rounded border border-neutral-800 bg-[#050505] text-[10px] font-mono tracking-widest uppercase text-neutral-400 hover:text-neutral-200 hover:border-neutral-600 transition-all group/btn"
           >
-            🎬 Video
+            <Play className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" /> Playback
           </a>
         </div>
       )}
