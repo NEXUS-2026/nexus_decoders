@@ -310,6 +310,160 @@ def stop_session(session_id: int, db: DBSession = Depends(get_session)):
     }
 
 
+class GenerateChallanRequest(BaseModel):
+    customer_ms: str = ""
+    transporter_id: str = ""
+    courier_partner: str = ""
+    challan_no: str = ""
+    pickup_date: str = ""
+    products: List[ProductItem] = []
+    challan_email: str = ""
+
+
+@router.post("/generate-challan/{session_id}")
+def generate_challan_endpoint(session_id: int, body: GenerateChallanRequest, db: DBSession = Depends(get_session)):
+    """Generate and email challan for a completed session."""
+    session = db.get(Session, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    if session.status != "completed":
+        raise HTTPException(status_code=400, detail="Session must be completed before generating challan")
+    
+    # Update session with challan details
+    session.customer_ms = body.customer_ms
+    session.transporter_id = body.transporter_id
+    session.courier_partner = body.courier_partner
+    session.challan_no = body.challan_no
+    session.pickup_date = body.pickup_date
+    session.products_json = json.dumps([p.dict() for p in body.products])
+    session.challan_email = body.challan_email
+    
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+    
+    # Generate challan PDF
+    challan_path = generate_challan(session)
+    session.challan_path = challan_path
+    db.add(session)
+    db.commit()
+    
+    # Send email if email address is provided
+    email_sent = False
+    if session.challan_email:
+        try:
+            from services.email_service import email_service
+            from services.video_compressor import video_compressor
+            
+            # Compress video for email attachment
+            compressed_video_path = None
+            if session.video_path and os.path.exists(session.video_path):
+                logger.info(f"Compressing video for email: {session.video_path}")
+                compressed_video_path = video_compressor.compress_for_email(
+                    session.video_path, 
+                    max_size_mb=20  # Leave some margin under Gmail's 25MB limit
+                )
+                if compressed_video_path:
+                    logger.info(f"Video compressed successfully: {compressed_video_path}")
+                else:
+                    logger.warning("Video compression failed, sending original video")
+            
+            # Create email content
+            subject = f"Challan #{session.challan_no or session.id} - DECODERS System"
+            
+            # HTML email body
+            html_body = f"""
+            <html>
+            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+                <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h1 style="color: #333; margin: 0;">DECODERS</h1>
+                        <p style="color: #666; margin: 5px 0;">Warehouse Vision Engine</p>
+                    </div>
+                    
+                    <h2 style="color: #333; border-bottom: 2px solid #22c55e; padding-bottom: 10px;">Challan Details</h2>
+                    
+                    <table style="width: 100%; margin: 20px 0; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 8px; font-weight: bold; background-color: #f8f9fa; border: 1px solid #ddd;">Challan Number:</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">{session.challan_no or session.id}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; font-weight: bold; background-color: #f8f9fa; border: 1px solid #ddd;">Batch ID:</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">{session.batch_id}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; font-weight: bold; background-color: #f8f9fa; border: 1px solid #ddd;">Operator:</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">{session.operator_id}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; font-weight: bold; background-color: #f8f9fa; border: 1px solid #ddd;">Customer:</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">{session.customer_ms or 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; font-weight: bold; background-color: #f8f9fa; border: 1px solid #ddd;">Transporter:</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">{session.transporter_id or 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; font-weight: bold; background-color: #f8f9fa; border: 1px solid #ddd;">Pickup Date:</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">{session.pickup_date or 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; font-weight: bold; background-color: #f8f9fa; border: 1px solid #ddd;">Final Box Count:</td>
+                            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; color: #22c55e;">{session.final_box_count}</td>
+                        </tr>
+                    </table>
+                    
+                    <div style="margin-top: 20px; padding: 15px; background-color: #e8f5e8; border-radius: 5px; border-left: 4px solid #22c55e;">
+                        <p style="margin: 0; font-size: 14px; color: #2d5016;">
+                            <strong>📎 Attachments:</strong><br>
+                            • Challan PDF document<br>
+                            • Processed video {("(compressed for email)" if compressed_video_path else "")}
+                        </p>
+                    </div>
+                    
+                    <div style="margin-top: 30px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+                        <p style="margin: 0; font-size: 12px; color: #666;">
+                            This email was sent automatically by the DECODERS Warehouse Vision Engine.<br>
+                            Session ID: {session.id} | Completed: {session.stopped_at.strftime('%Y-%m-%d %H:%M:%S') if session.stopped_at else 'N/A'}
+                        </p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            
+            # Send email with attachments
+            email_sent = email_service.send_challan_email(
+                recipient_email=session.challan_email,
+                subject=subject,
+                body=html_body,
+                pdf_attachment_path=challan_path,
+                video_attachment_path=compressed_video_path or session.video_path
+            )
+            
+            if email_sent:
+                logger.info(f"Email sent successfully to {session.challan_email}")
+                # Clean up compressed video if it was created
+                if compressed_video_path and os.path.exists(compressed_video_path):
+                    os.remove(compressed_video_path)
+                    logger.info(f"Cleaned up temporary compressed video: {compressed_video_path}")
+            else:
+                logger.error(f"Failed to send email to {session.challan_email}")
+                
+        except Exception as e:
+            logger.error(f"Error sending email: {str(e)}")
+    
+    return {
+        "session_id": session.id,
+        "final_box_count": session.final_box_count,
+        "challan_url": f"/api/files/challan/{session_id}",
+        "video_url": f"/api/files/video/{session_id}",
+        "email_sent": email_sent
+    }
+
+
 @router.get("/")
 def list_sessions(db: DBSession = Depends(get_session)):
     """Get all sessions with pagination support"""
