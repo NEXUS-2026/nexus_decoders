@@ -1,5 +1,21 @@
 # NEXUS Decoders - PS2 Warehouse Box Counting System
 
+## 🎯 Project Documentation
+
+### 📄 Presentation
+- **[AIML_2_DECODERS-2_compressed.pdf](./AIML_2_DECODERS-2_compressed.pdf)**
+  - Complete project overview
+  - Technical architecture
+  - Feature demonstrations
+  - Performance metrics
+
+### 🎥 Demo Video
+- **[AIML_2_DECODERS.mp4](./AIML_2_DECODERS.mp4)**
+  - Live system demonstration
+  - Real-time detection showcase
+  - User interface walkthrough
+  - End-to-end workflow
+
 ## 📁 Project Structure
 
 This repository contains the PS2 Warehouse Box Counting System along with its AI model and documentation.
@@ -96,21 +112,6 @@ python engine.py --source 0 --session 1 --model ../box_detection.pt
 - **Recommended**: NVIDIA GPU with 6GB+ VRAM
 - **Storage**: 500MB free space
 
-## 🎯 Project Documentation
-
-### 📄 Presentation
-- **[AIML_2_DECODERS-2_compressed.pdf](./AIML_2_DECODERS-2_compressed.pdf)**
-  - Complete project overview
-  - Technical architecture
-  - Feature demonstrations
-  - Performance metrics
-
-### 🎥 Demo Video
-- **[AIML_2_DECODERS.mp4](./AIML_2_DECODERS.mp4)**
-  - Live system demonstration
-  - Real-time detection showcase
-  - User interface walkthrough
-  - End-to-end workflow
 
 ## 🔧 Model Configuration
 
