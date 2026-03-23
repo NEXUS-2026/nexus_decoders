@@ -124,7 +124,7 @@ export default function VideoFeed({
       {/* Canvas Area */}
       <div className="relative w-full aspect-video bg-black flex-1 overflow-hidden">
         {/* Abstract grid behind the canvas (visible before video loads or when transparent) */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808025_1px,transparent_1px),linear-gradient(to_bottom,#80808025_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
         <canvas
           ref={canvasRef}
