@@ -21,8 +21,10 @@ import {
 import VideoFeed from "@/components/VideoFeed";
 import CountDisplay from "@/components/CountDisplay";
 import ConfidenceSlider from "@/components/ConfidenceSlider";
+import ChallanForm from "@/components/ChallanForm";
 import { API } from "@/lib/api";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface SessionInfo {
   id: number;
@@ -43,6 +45,7 @@ interface SessionResult {
 
 export default function SessionPage() {
   const params = useParams();
+  const router = useRouter();
   const sessionId = Number(params.id);
 
   const [count, setCount] = useState(0);
@@ -54,6 +57,7 @@ export default function SessionPage() {
   const [result, setResult] = useState<SessionResult | null>(null);
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [challanGenerated, setChallanGenerated] = useState(false);
 
   // --- LOGIC REMAINS UNCHANGED ---
   useEffect(() => {
@@ -157,6 +161,13 @@ export default function SessionPage() {
       console.error("Failed to reset:", err);
     }
   }
+
+  const handleChallanGenerated = (emailProvided: boolean = true) => {
+    setChallanGenerated(true);
+    setTimeout(() => {
+      router.push('/history');
+    }, 3000);
+  };
 
   const isLive = sessionInfo?.input_mode === "live";
   // --------------------------------------
@@ -263,52 +274,76 @@ export default function SessionPage() {
 
       {/* Main Layout - Full Width Flex */}
       <div className="w-full p-6 pt-24 pb-16 flex-1 flex flex-col relative z-10">
-        <div className="flex flex-col lg:flex-row gap-6 flex-1">
-         
-          {/* Left Column (Video & Inputs) */}
-          <div className="flex-1 space-y-6 flex flex-col">
-            {!stopped && (
-              <div className="space-y-4">
-                <VideoFeed
-                  sessionId={sessionId}
-                  onCountUpdate={handleCountUpdate}
-                  onVisibleUpdate={handleVisibleUpdate}
-                />
-                {/* Mobile/Tablet Controls */}
-                <div className="flex sm:hidden items-center justify-between gap-2 bg-[#0A0A0A] border border-neutral-800 p-2 rounded-xl">
-                    <button
-                      onClick={togglePause}
-                      className="flex-1 flex justify-center items-center gap-1.5 bg-neutral-800/50 active:bg-neutral-700/50 text-neutral-300 text-[10px] font-mono uppercase px-2 py-2 rounded"
-                    >
-                      {paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-                      {paused ? 'RESUME' : 'PAUSE'}
-                    </button>
-                    <button
-                      onClick={handleReset}
-                      className="flex-1 flex justify-center items-center gap-1.5 bg-neutral-800/50 active:bg-neutral-700/50 text-neutral-300 text-[10px] font-mono uppercase px-2 py-2 rounded"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      RESET
-                    </button>
-                    <button
-                      onClick={handleStop}
-                      className="flex-1 flex justify-center items-center gap-1.5 bg-red-500/10 active:bg-red-500/20 text-red-400 border border-red-500/20 text-[10px] font-mono uppercase px-2 py-2 rounded"
-                    >
-                      <Square className="w-3.5 h-3.5 fill-current" />
-                      STOP
-                    </button>
-                </div>
+        {challanGenerated ? (
+          <div className="flex-1 flex items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center"
+            >
+              <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mb-6 mx-auto">
+                <CheckCircle2 className="w-8 h-8 text-white" />
               </div>
-            )}
-
-            {!stopped && isLive && (
-              <ConfidenceSlider value={conf} onChange={setConf} />
-            )}
-
-            {!stopped && (sessionInfo?.input_mode === "upload" || sessionInfo?.input_mode === "ip_webcam") && (
-              <UploadProgress sessionId={sessionId} />
-            )}
+              <h2 className="text-2xl font-semibold text-white mb-4">Challan Generated Successfully!</h2>
+              <p className="text-neutral-400 mb-2">The challan has been generated and is ready for download.</p>
+              <p className="text-neutral-500 text-sm">Redirecting to history page...</p>
+            </motion.div>
           </div>
+        ) : (
+          <div className="flex flex-col lg:flex-row gap-6 flex-1">
+            {/* Left Column - Video/Challan Form */}
+            <div className="flex-1 space-y-6 flex flex-col">
+              {!stopped ? (
+                <>
+                  <VideoFeed
+                    sessionId={sessionId}
+                    onCountUpdate={handleCountUpdate}
+                    onVisibleUpdate={handleVisibleUpdate}
+                  />
+                  {/* Mobile/Tablet Controls */}
+                  <div className="flex sm:hidden items-center justify-between gap-2 bg-[#0A0A0A] border border-neutral-800 p-2 rounded-xl">
+                      <button
+                        onClick={togglePause}
+                        className="flex-1 flex justify-center items-center gap-1.5 bg-neutral-800/50 active:bg-neutral-700/50 text-neutral-300 text-[10px] font-mono uppercase px-2 py-2 rounded"
+                      >
+                        {paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                        {paused ? 'RESUME' : 'PAUSE'}
+                      </button>
+                      <button
+                        onClick={handleReset}
+                        className="flex-1 flex justify-center items-center gap-1.5 bg-neutral-800/50 active:bg-neutral-700/50 text-neutral-300 text-[10px] font-mono uppercase px-2 py-2 rounded"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        RESET
+                      </button>
+                      <button
+                        onClick={handleStop}
+                        className="flex-1 flex justify-center items-center gap-1.5 bg-red-500/10 active:bg-red-500/20 text-red-400 border border-red-500/20 text-[10px] font-mono uppercase px-2 py-2 rounded"
+                      >
+                        <Square className="w-3.5 h-3.5 fill-current" />
+                        STOP
+                      </button>
+                  </div>
+                </>
+              ) : (
+                sessionInfo && (
+                  <ChallanForm
+                    sessionId={sessionId}
+                    operatorId={sessionInfo.operator_id}
+                    batchId={sessionInfo.batch_id}
+                    onChallanGenerated={(emailProvided = true) => handleChallanGenerated(emailProvided)}
+                  />
+                )
+              )}
+
+              {!stopped && isLive && (
+                <ConfidenceSlider value={conf} onChange={setConf} />
+              )}
+
+              {!stopped && (sessionInfo?.input_mode === "upload" || sessionInfo?.input_mode === "ip_webcam") && (
+                <UploadProgress sessionId={sessionId} />
+              )}
+            </div>
 
           {/* Right Column (Telemetry & Results) */}
           <div className="lg:w-96 space-y-6">
@@ -396,6 +431,7 @@ export default function SessionPage() {
             )}
           </div>
         </div>
+        )}
       </div>
     </main>
   );

@@ -37,6 +37,9 @@ export const API = {
     }).then((r) => r.json());
   },
 
+  getSession: (id: number) =>
+    fetch(`${BASE}/api/sessions/${id}`).then((r) => r.json()),
+
   getDetectionStatus: (sessionId: number) =>
     fetch(`${BASE}/api/sessions/detection-status/${sessionId}`).then((r) => r.json()),
 
@@ -53,9 +56,6 @@ export const API = {
   getSessions: () =>
     fetch(`${BASE}/api/sessions/`).then((r) => r.json()),
 
-  getSession: (id: number) =>
-    fetch(`${BASE}/api/sessions/${id}`).then((r) => r.json()),
-
   challanUrl: (id: number) => `${BASE}/api/files/challan/${id}`,
   videoUrl: (id: number) => `${BASE}/api/files/video/${id}`,
   feedWsUrl: (id: number) => `${WS}/ws/feed/${id}`,
@@ -66,5 +66,12 @@ export const API = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ confidence_threshold }),
+    }).then((r) => r.json()),
+
+  generateChallan: (sessionId: number, params: Omit<SessionStartParams, 'operator_id' | 'batch_id' | 'input_mode' | 'ip_webcam_url'>) =>
+    fetch(`${BASE}/api/sessions/generate-challan/${sessionId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
     }).then((r) => r.json()),
 };
