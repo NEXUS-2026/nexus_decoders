@@ -84,6 +84,19 @@ export default function Navbar({ title, showBackButton = false, backUrl = "/" }:
                   <BarChart3 className="w-3 h-3" />
                   Analytics
                 </Link>
+                <span className="text-neutral-700">|</span>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-neutral-900 border border-neutral-700 rounded-full">
+                  <User className="w-3 h-3 text-neutral-400" />
+                  <span className="text-[10px] font-mono text-neutral-300">{user?.name}</span>
+                  <span className="text-[10px] font-mono text-neutral-600">({user?.role})</span>
+                </div>
+                <button
+                  onClick={logout}
+                  className="hover:text-red-400 transition-colors flex items-center gap-1"
+                >
+                  <LogOut className="w-3 h-3" />
+                  Logout
+                </button>
               </>
             )}
           </nav>
